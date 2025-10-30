@@ -5,8 +5,8 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { createUserWithEmailAndPassword, User } from "firebase/auth";
+import { useEffect } from "react";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { collection, addDoc, doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 
 
@@ -221,22 +221,26 @@ export default function SignupPage() {
                         <FormField control={form.control} name="companyName" render={({ field }) => ( <FormItem> <FormLabel>Company Name</FormLabel> <FormControl> <Input placeholder="The Grand Hotel" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={form.control} name="orgNumber" render={({ field }) => ( <FormItem> <FormLabel>Organization Number</FormLabel> <FormControl> <Input placeholder="987654321" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                            <FormField control={form.control} name="companyType" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Company Type</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormField
+                                control={form.control}
+                                name="companyType"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Company Type</FormLabel>
                                         <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="horeca">Horeca</SelectItem>
+                                                    <SelectItem value="distributor">Distributor</SelectItem>
+                                                    <SelectItem value="other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="horeca">Horeca</SelectItem>
-                                            <SelectItem value="distributor">Distributor</SelectItem>
-                                            <SelectItem value="other">Other</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                             )}/>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={form.control} name="visitingAddressStreet" render={({ field }) => ( <FormItem> <FormLabel>Visiting Address</FormLabel> <FormControl> <Input placeholder="Storgata 15" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
