@@ -1,3 +1,5 @@
+'use client';
+
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from "recharts"
 
 import { Button } from "@/components/ui/button"
