@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { signInWithEmailAndPassword, User } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp, addDoc, collection } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 
 import { Button } from "@/components/ui/button";
@@ -44,75 +44,37 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-        // If user is admin, redirect to admin dashboard, else to customer dashboard
+    if (isUserLoading || !firestore) return; // Wait for user and firestore
+    if (user) {
         const userDocRef = doc(firestore, "users", user.uid);
         getDoc(userDocRef).then(docSnap => {
             if (docSnap.exists() && docSnap.data().role === 'admin') {
                 router.push('/admin');
             } else {
+                // This handles both non-admin users and cases where the doc might not exist yet
                 router.push('/dashboard');
             }
+        }).catch(err => {
+            console.error("Error getting user document:", err);
+            // Default to dashboard on error
+            router.push('/dashboard');
         });
     }
   }, [user, isUserLoading, router, firestore]);
 
     const handlePostLogin = async (loggedInUser: User) => {
         if (!firestore) return;
-
         const userDocRef = doc(firestore, "users", loggedInUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-            toast({
-                title: "Setting up your account...",
-                description: "Creating database entries for the first time.",
+        // Only update last login time. Creation is handled at signup.
+        try {
+            await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
+        } catch (error) {
+            console.error("Failed to update last login time:", error);
+             toast({
+                variant: "destructive",
+                title: "Session Error",
+                description: "Could not update your session. Please try again.",
             });
-
-            // Special case for your admin UID
-            const isAdminUser = loggedInUser.uid === '1PImCPdQ6AfYU412d2o6tKFjpte2';
-            const userRole = isAdminUser ? 'admin' : 'customer';
-
-            // 1. Create a new company document in Firestore
-            const companyRef = await addDoc(collection(firestore, "companies"), {
-                name: "Default Company",
-                orgNumber: "000000000",
-                companyType: "other",
-                contactEmail: loggedInUser.email,
-                contactPhone: "N/A",
-                contactPerson: {
-                    firstName: "Admin",
-                    lastName: "User",
-                },
-                billingAddress: { street: "", zip: "", city: "", country: "Norway" },
-                visitingAddress: { street: "", zip: "", city: "", country: "Norway" },
-                shippingAddresses: [],
-                pricing: { freeShippingThreshold: 0, hasCustomPricing: false, discountPercentage: 0 },
-                active: true,
-                approved: true,
-                registeredAt: serverTimestamp(),
-                approvedAt: serverTimestamp(),
-                approvedBy: "system",
-                adminNotes: "Automatically created for existing auth user."
-            });
-
-            // 2. Create the user document in Firestore
-            await setDoc(userDocRef, {
-                role: userRole,
-                companyId: companyRef.id,
-                email: loggedInUser.email,
-                firstName: "Admin",
-                lastName: "User",
-                phone: "N/A",
-                approved: true,
-                active: true,
-                createdAt: serverTimestamp(),
-                lastLogin: serverTimestamp(),
-                notificationSettings: { emailNotifications: true, inAppNotifications: true, orderUpdates: true, invoiceUpdates: true, stockAlerts: false },
-                permissions: { canManageProducts: isAdminUser, canManageOrders: isAdminUser, canManageStock: isAdminUser, canViewReports: isAdminUser }
-            });
-        } else {
-             await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
         }
     }
 
@@ -144,19 +106,11 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading) {
+  if (isUserLoading || user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Loading...</p>
       </div>
-    );
-  }
-
-  if(user) {
-    return (
-        <div className="flex items-center justify-center min-h-screen">
-            <p>Redirecting...</p>
-        </div>
     );
   }
 

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, User } from "firebase/auth";
+import { createUserWithEmailAndPassword, User } from "firebase/auth";
 import { collection, addDoc, doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 
 
@@ -63,7 +63,8 @@ export default function SignupPage() {
     });
 
     useEffect(() => {
-        if (!isUserLoading && user) {
+        if (isUserLoading || !firestore) return;
+        if (user) {
             const userDocRef = doc(firestore, "users", user.uid);
             getDoc(userDocRef).then(docSnap => {
                 if (docSnap.exists() && docSnap.data().role === 'admin') {
@@ -74,65 +75,6 @@ export default function SignupPage() {
             });
         }
     }, [user, isUserLoading, router, firestore]);
-
-    const handlePostLogin = async (loggedInUser: User) => {
-        if (!firestore) return;
-
-        const userDocRef = doc(firestore, "users", loggedInUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (!userDoc.exists()) {
-            toast({
-                title: "Setting up your account...",
-                description: "Creating database entries for the first time.",
-            });
-
-            // Special case for your admin UID
-            const isAdminUser = loggedInUser.uid === '1PImCPdQ6AfYU412d2o6tKFjpte2';
-            const userRole = isAdminUser ? 'admin' : 'customer';
-
-            // 1. Create a new company document in Firestore
-            const companyRef = await addDoc(collection(firestore, "companies"), {
-                name: "Default Company",
-                orgNumber: "000000000",
-                companyType: "other",
-                contactEmail: loggedInUser.email,
-                contactPhone: "N/A",
-                contactPerson: {
-                    firstName: "Admin",
-                    lastName: "User",
-                },
-                billingAddress: { street: "", zip: "", city: "", country: "Norway" },
-                visitingAddress: { street: "", zip: "", city: "", country: "Norway" },
-                shippingAddresses: [],
-                pricing: { freeShippingThreshold: 0, hasCustomPricing: false, discountPercentage: 0 },
-                active: true,
-                approved: true,
-                registeredAt: serverTimestamp(),
-                approvedAt: serverTimestamp(),
-                approvedBy: "system",
-                adminNotes: "Automatically created for existing auth user."
-            });
-
-            // 2. Create the user document in Firestore
-            await setDoc(userDocRef, {
-                role: userRole,
-                companyId: companyRef.id,
-                email: loggedInUser.email,
-                firstName: "Admin",
-                lastName: "User",
-                phone: "N/A",
-                approved: true,
-                active: true,
-                createdAt: serverTimestamp(),
-                lastLogin: serverTimestamp(),
-                notificationSettings: { emailNotifications: true, inAppNotifications: true, orderUpdates: true, invoiceUpdates: true, stockAlerts: false },
-                permissions: { canManageProducts: isAdminUser, canManageOrders: isAdminUser, canManageStock: isAdminUser, canViewReports: isAdminUser }
-            });
-        } else {
-             await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
-        }
-    }
 
     const onSubmit: SubmitHandler<SignupFormData> = async (data) => {
         if (!auth || !firestore) {
@@ -145,27 +87,11 @@ export default function SignupPage() {
         }
 
         toast({
-            title: "Processing request...",
+            title: "Creating your account...",
             description: "Please wait.",
         });
 
         try {
-            // WORKAROUND: If it's the admin user, try to sign in instead of creating a new user.
-            // Replace with your actual admin email.
-            if (data.email.toLowerCase() === 'admin@example.com' || data.email.toLowerCase() === 'your-admin-email@domain.com') { // IMPORTANT: change this email
-                toast({ title: "Admin login attempt..."});
-                try {
-                    const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-                    await handlePostLogin(userCredential.user);
-                    return; // Stop execution
-                } catch(signInError: any) {
-                     // If sign-in fails, we still fall through to the create user logic,
-                     // which will likely fail if user exists, but it's a fallback.
-                     console.warn("Admin sign-in failed, proceeding to sign-up logic.", signInError);
-                }
-            }
-
-
             // 1. Create user in Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
             const newUser = userCredential.user;
@@ -236,8 +162,10 @@ export default function SignupPage() {
 
             toast({
                 title: "Account Created!",
-                description: "Redirecting you to the dashboard.",
+                description: "Your application has been submitted and is pending approval. You will be redirected.",
             });
+
+            // Let the useEffect handle the redirect.
 
         } catch (error: any) {
             console.error("Signup Error:", error);
