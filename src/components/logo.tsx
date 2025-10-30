@@ -6,8 +6,8 @@ export function Logo({ className }: { className?: string }) {
     <div className={cn("flex items-start gap-2", className)}>
       <Wine className="h-8 w-8 text-primary mt-1" />
       <div className='flex flex-col'>
-        <span className="font-semibold font-headline text-xl leading-none">BON B2B Portal</span>
-        <span className='text-sm text-muted-foreground'>Booze of Norway</span>
+        <span className="font-semibold font-headline text-xl leading-none">Booze of Norway</span>
+        <span className='text-sm text-muted-foreground'>B2B Portal</span>
       </div>
     </div>
   );

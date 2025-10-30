@@ -2,10 +2,19 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
-import { Inter } from 'next/font/google';
+import { Poppins, PT_Sans } from 'next/font/google';
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const fontPoppins = Poppins({ 
+  subsets: ['latin'], 
+  variable: '--font-poppins',
+  weight: ['400', '600', '700'] 
+});
+const fontPtSans = PT_Sans({ 
+  subsets: ['latin'], 
+  variable: '--font-pt-sans',
+  weight: ['400', '700']
+});
 
 
 export const metadata: Metadata = {
@@ -23,7 +32,8 @@ export default function RootLayout({
       <body
         className={cn(
           "min-h-screen bg-background font-body antialiased",
-          inter.variable
+          fontPoppins.variable,
+          fontPtSans.variable
         )}
         suppressHydrationWarning={true}
       >
