@@ -25,6 +25,7 @@ export default function RootLayout({
           "min-h-screen bg-background font-body antialiased",
           inter.variable
         )}
+        suppressHydrationWarning={true}
       >
         <FirebaseClientProvider>
           {children}
