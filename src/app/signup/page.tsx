@@ -28,6 +28,10 @@ const signupSchema = z.object({
     firstName: z.string().min(1, { message: "First name is required." }),
     lastName: z.string().min(1, { message: "Last name is required." }),
     companyName: z.string().min(1, { message: "Company name is required." }),
+    orgNumber: z.string().min(1, { message: "Organization number is required." }),
+    phone: z.string().min(1, { message: "Phone number is required." }),
+    address: z.string().min(1, { message: "Street address is required." }),
+    postalCode: z.string().min(1, { message: "Postal code is required." }),
     email: z.string().email({ message: "Invalid email address." }),
     password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
@@ -47,6 +51,10 @@ export default function SignupPage() {
             firstName: "",
             lastName: "",
             companyName: "",
+            orgNumber: "",
+            phone: "",
+            address: "",
+            postalCode: "",
             email: "",
             password: "",
         },
@@ -123,6 +131,62 @@ export default function SignupPage() {
                         </FormItem>
                         )}
                     />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="orgNumber"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Organization Number</FormLabel>
+                                <FormControl>
+                                <Input placeholder="987654321" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Phone</FormLabel>
+                                <FormControl>
+                                <Input placeholder="+47 123 45 678" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="address"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Street Address</FormLabel>
+                                <FormControl>
+                                <Input placeholder="Storgata 15" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="postalCode"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Postal Code</FormLabel>
+                                <FormControl>
+                                <Input placeholder="0184" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
                     <FormField
                         control={form.control}
                         name="email"
