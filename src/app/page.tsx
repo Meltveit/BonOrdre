@@ -7,15 +7,14 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useAuth, useUser } from "@/firebase";
-import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,12 +46,25 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const onSubmit: SubmitHandler<LoginFormData> = (data) => {
-    initiateEmailSignIn(auth, data.email, data.password);
+  const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
+    if (!auth) return;
+    
     toast({
       title: "Logging in...",
       description: "You will be redirected shortly.",
     });
+
+    try {
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+      // The useEffect will handle the redirect
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      toast({
+          variant: "destructive",
+          title: "Uh oh! Something went wrong.",
+          description: error.message || "Could not sign you in.",
+      });
+    }
   };
 
   if (isUserLoading) {
@@ -124,8 +136,8 @@ export default function LoginPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                    Login
+                  <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? 'Logging in...' : 'Login'}
                   </Button>
                 </form>
               </Form>

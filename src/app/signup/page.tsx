@@ -6,6 +6,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { collection, addDoc, doc, setDoc, serverTimestamp } from "firebase/firestore";
+
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,10 +19,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
-import { useAuth, useUser } from "@/firebase";
-import { initiateEmailSignUp } from "@/firebase/non-blocking-login";
+import { useAuth, useFirestore, useUser } from "@/firebase";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,6 +42,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
     const auth = useAuth();
+    const firestore = useFirestore();
     const { user, isUserLoading } = useUser();
     const router = useRouter();
     const { toast } = useToast();
@@ -66,12 +68,103 @@ export default function SignupPage() {
         }
     }, [user, isUserLoading, router]);
 
-    const onSubmit: SubmitHandler<SignupFormData> = (data) => {
-        initiateEmailSignUp(auth, data.email, data.password);
+    const onSubmit: SubmitHandler<SignupFormData> = async (data) => {
+        if (!auth || !firestore) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Firebase is not initialized.",
+            });
+            return;
+        }
+
         toast({
             title: "Creating account...",
-            description: "You will be redirected shortly.",
+            description: "Please wait.",
         });
+
+        try {
+            // 1. Create user in Firebase Auth
+            const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+            const newUser = userCredential.user;
+
+            // 2. Create a new company document in Firestore
+            const companyRef = await addDoc(collection(firestore, "companies"), {
+                name: data.companyName,
+                orgNumber: data.orgNumber,
+                companyType: "other", // Default value
+                contactEmail: data.email,
+                contactPhone: data.phone,
+                contactPerson: {
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                },
+                billingAddress: {
+                    street: data.address,
+                    zip: data.postalCode,
+                    city: "", // Can be added later
+                    country: "Norway" // Default value
+                },
+                visitingAddress: {
+                    street: data.address,
+                    zip: data.postalCode,
+                    city: "",
+                    country: "Norway"
+                },
+                shippingAddresses: [],
+                pricing: {
+                    freeShippingThreshold: 0,
+                    hasCustomPricing: false,
+                    discountPercentage: 0
+                },
+                active: false,
+                approved: false,
+                registeredAt: serverTimestamp(),
+                approvedAt: null,
+                approvedBy: null,
+                adminNotes: ""
+            });
+
+            // 3. Create a new user document in Firestore linked to the company
+            await setDoc(doc(firestore, "users", newUser.uid), {
+                role: "customer",
+                companyId: companyRef.id,
+                email: data.email,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                phone: data.phone,
+                approved: false,
+                active: true,
+                createdAt: serverTimestamp(),
+                lastLogin: serverTimestamp(),
+                notificationSettings: {
+                    emailNotifications: true,
+                    inAppNotifications: true,
+                    orderUpdates: true,
+                    invoiceUpdates: true,
+                    stockAlerts: false
+                },
+                permissions: {
+                    canManageProducts: false,
+                    canManageOrders: false,
+                    canManageStock: false,
+                    canViewReports: false
+                }
+            });
+
+            toast({
+                title: "Account Created!",
+                description: "Redirecting you to the dashboard.",
+            });
+
+        } catch (error: any) {
+            console.error("Signup Error:", error);
+            toast({
+                variant: "destructive",
+                title: "Uh oh! Something went wrong.",
+                description: error.message || "Could not create your account.",
+            });
+        }
     };
 
   return (
@@ -213,8 +306,8 @@ export default function SignupPage() {
                         </FormItem>
                         )}
                     />
-                    <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                    Create an account
+                    <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
+                        {form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}
                     </Button>
                 </form>
           </Form>
