@@ -221,7 +221,7 @@ export default function SignupPage() {
                         <FormField control={form.control} name="companyName" render={({ field }) => ( <FormItem> <FormLabel>Company Name</FormLabel> <FormControl> <Input placeholder="The Grand Hotel" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={form.control} name="orgNumber" render={({ field }) => ( <FormItem> <FormLabel>Organization Number</FormLabel> <FormControl> <Input placeholder="987654321" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                            <FormField
+                             <FormField
                                 control={form.control}
                                 name="companyType"
                                 render={({ field }) => (
@@ -229,7 +229,9 @@ export default function SignupPage() {
                                         <FormLabel>Company Type</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
-                                                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="horeca">Horeca</SelectItem>
