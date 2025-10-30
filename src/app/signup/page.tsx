@@ -227,16 +227,16 @@ export default function SignupPage() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Company Type</FormLabel>
-                                        <FormControl>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
                                                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="horeca">Horeca</SelectItem>
-                                                    <SelectItem value="distributor">Distributor</SelectItem>
-                                                    <SelectItem value="other">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormControl>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="horeca">Horeca</SelectItem>
+                                                <SelectItem value="distributor">Distributor</SelectItem>
+                                                <SelectItem value="other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
