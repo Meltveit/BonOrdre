@@ -1,4 +1,5 @@
-import { File, ListFilter, MoreHorizontal } from "lucide-react";
+'use client';
+import { File, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -27,9 +27,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockOrders } from "@/lib/data";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
+import type { Order } from "@/lib/definitions";
 
 export default function AdminOrdersPage() {
+  const firestore = useFirestore();
+  const ordersRef = useMemoFirebase(() => firestore ? collection(firestore, 'orders') : null, [firestore]);
+  const { data: orders, isLoading } = useCollection<Order>(ordersRef);
+  
   const getBadgeVariant = (status: string) => {
     switch (status) {
         case 'Delivered': return 'default';
@@ -84,15 +90,17 @@ export default function AdminOrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockOrders.map((order) => (
+                {isLoading && <TableRow><TableCell colSpan={6}>Loading orders...</TableCell></TableRow>}
+                {!isLoading && orders?.length === 0 && <TableRow><TableCell colSpan={6}>No orders found.</TableCell></TableRow>}
+                {orders?.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{order.customerName}</TableCell>
+                    <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                    <TableCell>{order.customer.name}</TableCell>
                     <TableCell>
                       <Badge variant={getBadgeVariant(order.status)}>{order.status}</Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{order.date}</TableCell>
-                    <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                    <TableCell className="hidden md:table-cell">{order.timeline[0]?.date.toDate().toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">${order.pricing.total.toFixed(2)}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -117,7 +125,7 @@ export default function AdminOrdersPage() {
           </CardContent>
           <CardFooter>
             <div className="text-xs text-muted-foreground">
-              Showing <strong>1-4</strong> of <strong>{mockOrders.length}</strong> orders
+              Showing <strong>{orders?.length || 0}</strong> of <strong>{orders?.length || 0}</strong> orders
             </div>
           </CardFooter>
         </Card>

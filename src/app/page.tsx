@@ -6,9 +6,9 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { signInWithEmailAndPassword, User } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, DocumentSnapshot } from "firebase/firestore";
 
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useAuth, useUser, useFirestore } from "@/firebase";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import type { Company } from "@/lib/definitions";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -34,6 +35,7 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
+  const [authChecked, setAuthChecked] = useState(false);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -45,27 +47,45 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isUserLoading || !firestore) return; // Wait for user and firestore
-    if (user) {
+    
+    const checkUser = async (user: User) => {
         const userDocRef = doc(firestore, "users", user.uid);
-        getDoc(userDocRef).then(docSnap => {
-            if (docSnap.exists() && docSnap.data().role === 'admin') {
-                router.push('/admin');
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
+            router.push('/admin');
+        } else if (userDocSnap.exists()) {
+            const companyDocRef = doc(firestore, "companies", userDocSnap.data().companyId);
+            const companyDocSnap = await getDoc(companyDocRef);
+            if (companyDocSnap.exists() && companyDocSnap.data().approved) {
+                 router.push('/dashboard');
             } else {
-                // This handles both non-admin users and cases where the doc might not exist yet
-                router.push('/dashboard');
+                // Not approved, keep them on a waiting screen or log them out
+                toast({
+                    variant: 'destructive',
+                    title: 'Account Not Approved',
+                    description: "Your account is still awaiting admin approval. Please check back later."
+                });
+                auth?.signOut();
+                setAuthChecked(true); // Allow rendering the login form
             }
-        }).catch(err => {
-            console.error("Error getting user document:", err);
-            // Default to dashboard on error
+        } else {
+            // Fallback for customer if user doc doesn't exist for some reason
             router.push('/dashboard');
-        });
+        }
     }
-  }, [user, isUserLoading, router, firestore]);
+
+    if (user) {
+        checkUser(user);
+    } else {
+        setAuthChecked(true);
+    }
+
+  }, [user, isUserLoading, router, firestore, auth]);
 
     const handlePostLogin = async (loggedInUser: User) => {
         if (!firestore) return;
         const userDocRef = doc(firestore, "users", loggedInUser.uid);
-        // Only update last login time. Creation is handled at signup.
         try {
             await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
         } catch (error) {
@@ -89,7 +109,7 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       await handlePostLogin(userCredential.user);
-      // The useEffect will handle the redirect after state update
+      // The useEffect will handle the redirect after state update.
     } catch (error: any) {
       console.error("Login Error:", error);
       let description = "An unknown error occurred. Please try again.";
@@ -106,7 +126,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading || user) {
+  if (!authChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Loading...</p>

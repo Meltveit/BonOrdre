@@ -1,3 +1,4 @@
+'use client';
 import Image from "next/image";
 import { File, ListFilter, MoreHorizontal, PlusCircle } from "lucide-react";
 
@@ -29,9 +30,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockProducts } from "@/lib/data";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
+import type { Product } from "@/lib/definitions";
+
 
 export default function AdminProductsPage() {
+    const firestore = useFirestore();
+    const productsRef = useMemoFirebase(() => firestore ? collection(firestore, 'products') : null, [firestore]);
+    const { data: products, isLoading } = useCollection<Product>(productsRef);
+
   return (
     <Tabs defaultValue="all">
       <div className="flex items-center">
@@ -106,24 +114,25 @@ export default function AdminProductsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockProducts.map((product) => (
+                {isLoading && <TableRow><TableCell colSpan={6}>Loading products...</TableCell></TableRow>}
+                {!isLoading && products?.length === 0 && <TableRow><TableCell colSpan={6}>No products found.</TableCell></TableRow>}
+                {products?.map((product) => (
                     <TableRow key={product.id}>
                         <TableCell className="hidden sm:table-cell">
-                        <Image
+                        {product.images?.url && <Image
                             alt={product.name}
                             className="aspect-square rounded-md object-cover"
                             height="64"
-                            src={product.imageUrl}
-                            data-ai-hint={product.imageHint}
+                            src={product.images.url}
                             width="64"
-                        />
+                        />}
                         </TableCell>
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>
-                        <Badge variant="outline">Active</Badge>
+                        <Badge variant="outline">{product.metadata?.status || 'Active'}</Badge>
                         </TableCell>
-                        <TableCell>${product.price.toFixed(2)}</TableCell>
-                        <TableCell className="hidden md:table-cell">{product.stock}</TableCell>
+                        <TableCell>${product.pricing?.basePrice?.toFixed(2) || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{product.stock?.quantity ?? 'N/A'}</TableCell>
                         <TableCell>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -148,7 +157,7 @@ export default function AdminProductsPage() {
           </CardContent>
           <CardFooter>
             <div className="text-xs text-muted-foreground">
-              Showing <strong>1-6</strong> of <strong>32</strong> products
+              Showing <strong>{products?.length || 0}</strong> of <strong>{products?.length || 0}</strong> products
             </div>
           </CardFooter>
         </Card>

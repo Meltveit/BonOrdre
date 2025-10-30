@@ -3,17 +3,11 @@
 import {
   Activity,
   ArrowUpRight,
-  CircleUser,
   CreditCard,
   DollarSign,
-  Menu,
-  MoreHorizontal,
-  Package2,
-  Search,
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +26,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
-import { mockOrders } from "@/lib/data";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
+import type { Order } from "@/lib/definitions";
 
 const salesData = [
   { name: "Jan", total: Math.floor(Math.random() * 5000) + 1000 },
@@ -50,6 +46,10 @@ const salesData = [
 ];
 
 export default function AdminDashboardPage() {
+    const firestore = useFirestore();
+    const ordersRef = useMemoFirebase(() => firestore ? collection(firestore, 'orders') : null, [firestore]);
+    const { data: orders, isLoading } = useCollection<Order>(ordersRef);
+
   return (
     <div className="grid gap-4 md:gap-8">
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
@@ -95,9 +95,9 @@ export default function AdminDashboardPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+5</div>
+            <div className="text-2xl font-bold">+{orders?.filter(o => o.status === 'Pending').length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              -2 since last hour
+              Total pending orders
             </p>
           </CardContent>
         </Card>
@@ -134,7 +134,7 @@ export default function AdminDashboardPage() {
             <div className="grid gap-2">
               <CardTitle>Recent Orders</CardTitle>
               <CardDescription>
-                You have {mockOrders.length} recent orders.
+                You have {orders?.length || 0} recent orders.
               </CardDescription>
             </div>
             <Button asChild size="sm" className="ml-auto gap-1">
@@ -153,15 +153,16 @@ export default function AdminDashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockOrders.slice(0, 5).map(order => (
+                {isLoading && <TableRow><TableCell colSpan={2}>Loading...</TableCell></TableRow>}
+                {orders?.slice(0, 5).map(order => (
                     <TableRow key={order.id}>
                         <TableCell>
-                            <div className="font-medium">{order.customerName}</div>
+                            <div className="font-medium">{order.customer.name}</div>
                             <div className="hidden text-sm text-muted-foreground md:inline">
-                            {order.id}
+                                {order.orderNumber}
                             </div>
                         </TableCell>
-                        <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">${order.pricing.total.toFixed(2)}</TableCell>
                     </TableRow>
                 ))}
               </TableBody>

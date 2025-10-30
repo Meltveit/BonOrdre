@@ -1,3 +1,4 @@
+'use client';
 import { MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { mockOrders } from "@/lib/data";
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { collection, query, where } from "firebase/firestore";
+import type { Order } from "@/lib/definitions";
 
 export default function OrdersPage() {
+    const firestore = useFirestore();
+    const { user } = useUser();
+    
+    const ordersQuery = useMemoFirebase(
+        () => 
+            firestore && user 
+            ? query(collection(firestore, 'orders'), where('customerId', '==', user.uid))
+            : null, 
+        [firestore, user]
+    );
+    const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
+
   return (
     <Card>
       <CardHeader>
@@ -48,16 +63,18 @@ export default function OrdersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockOrders.map((order) => (
+            {isLoading && <TableRow><TableCell colSpan={5}>Loading orders...</TableCell></TableRow>}
+            {!isLoading && orders?.length === 0 && <TableRow><TableCell colSpan={5}>No orders found.</TableCell></TableRow>}
+            {orders?.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id}</TableCell>
+                <TableCell className="font-medium">{order.orderNumber}</TableCell>
                 <TableCell>
                   <Badge variant={order.status === "Delivered" ? "default" : "secondary"}>{order.status}</Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  {order.date}
+                  {order.timeline[0]?.date.toDate().toLocaleDateString()}
                 </TableCell>
-                <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                <TableCell className="text-right">${order.pricing.total.toFixed(2)}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
