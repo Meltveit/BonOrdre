@@ -1,0 +1,1006 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the B2B portal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user. (Primary Key)"
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role within the system (admin, customer, employee)."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N User). Nullable if the user is not associated with a company."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The user's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The user's last name."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
+        "approved": {
+          "type": "boolean",
+          "description": "Indicates whether the user's registration has been approved."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Indicates whether the user account is active."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the user account was created.",
+          "format": "date-time"
+        },
+        "lastLogin": {
+          "type": "string",
+          "description": "The timestamp of the user's last login.",
+          "format": "date-time"
+        },
+        "notificationSettings": {
+          "type": "string",
+          "description": "A JSON object representing notification preferences."
+        },
+        "permissions": {
+          "type": "string",
+          "description": "A JSON object representing user permissions."
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "email",
+        "firstName",
+        "lastName",
+        "phone",
+        "approved",
+        "active",
+        "createdAt",
+        "lastLogin",
+        "notificationSettings",
+        "permissions"
+      ]
+    },
+    "Company": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Company",
+      "type": "object",
+      "description": "Represents a B2B customer company.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the company. (Primary Key)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the company."
+        },
+        "orgNumber": {
+          "type": "string",
+          "description": "The company's organization number."
+        },
+        "companyType": {
+          "type": "string",
+          "description": "The type of company (horeca, distributor, other)."
+        },
+        "contactEmail": {
+          "type": "string",
+          "description": "The company's contact email address.",
+          "format": "email"
+        },
+        "contactPhone": {
+          "type": "string",
+          "description": "The company's contact phone number."
+        },
+        "contactPerson": {
+          "type": "string",
+          "description": "A JSON object containing the contact person's first and last names."
+        },
+        "billingAddress": {
+          "type": "string",
+          "description": "A JSON object representing the company's billing address."
+        },
+        "visitingAddress": {
+          "type": "string",
+          "description": "A JSON object representing the company's visiting address."
+        },
+        "shippingAddresses": {
+          "type": "array",
+          "description": "An array of JSON objects representing the company's shipping addresses.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pricing": {
+          "type": "string",
+          "description": "A JSON object representing the company's pricing configurations."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Indicates whether the company account is active."
+        },
+        "approved": {
+          "type": "boolean",
+          "description": "Indicates whether the company registration has been approved."
+        },
+        "registeredAt": {
+          "type": "string",
+          "description": "The timestamp when the company registered.",
+          "format": "date-time"
+        },
+        "approvedAt": {
+          "type": "string",
+          "description": "The timestamp when the company was approved. Nullable if not approved.",
+          "format": "date-time"
+        },
+        "approvedBy": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Company). The user ID who approved the company. Nullable if not approved."
+        },
+        "adminNotes": {
+          "type": "string",
+          "description": "Administrative notes about the company."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "orgNumber",
+        "companyType",
+        "contactEmail",
+        "contactPhone",
+        "contactPerson",
+        "billingAddress",
+        "visitingAddress",
+        "shippingAddresses",
+        "pricing",
+        "active",
+        "approved",
+        "registeredAt"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product in the B2B portal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the product. (Primary Key)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the product (HTML/rich text)."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the product."
+        },
+        "images": {
+          "type": "string",
+          "description": "A JSON object containing the product's image URLs."
+        },
+        "sku": {
+          "type": "string",
+          "description": "The product's SKU (Stock Keeping Unit)."
+        },
+        "eanNumber": {
+          "type": "string",
+          "description": "The product's EAN (European Article Number)."
+        },
+        "country": {
+          "type": "string",
+          "description": "The country of origin for the product."
+        },
+        "size": {
+          "type": "string",
+          "description": "The size of the product (e.g., 0.33L, 0.5L)."
+        },
+        "alcoholPercentage": {
+          "type": "number",
+          "description": "The alcohol percentage of the product."
+        },
+        "productType": {
+          "type": "string",
+          "description": "The type of product (beer, wine, spirits, cider, other)."
+        },
+        "manufacturer": {
+          "type": "string",
+          "description": "The manufacturer of the product."
+        },
+        "variants": {
+          "type": "array",
+          "description": "An array of JSON objects representing the product's variants.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pricing": {
+          "type": "string",
+          "description": "A JSON object representing the product's pricing information."
+        },
+        "packaging": {
+          "type": "string",
+          "description": "A JSON object representing the product's packaging details."
+        },
+        "stock": {
+          "type": "string",
+          "description": "A JSON object representing the product's stock levels."
+        },
+        "metadata": {
+          "type": "string",
+          "description": "A JSON object representing the product's metadata."
+        },
+        "searchKeywords": {
+          "type": "array",
+          "description": "An array of keywords for search optimization.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "category",
+        "images",
+        "sku",
+        "eanNumber",
+        "country",
+        "size",
+        "alcoholPercentage",
+        "productType",
+        "manufacturer",
+        "variants",
+        "pricing",
+        "packaging",
+        "stock",
+        "metadata",
+        "searchKeywords"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents an order placed by a customer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order. (Primary Key)"
+        },
+        "orderNumber": {
+          "type": "string",
+          "description": "The order number (e.g., ORD-2024-001234)."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Order). The ID of the customer who placed the order."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Order). The ID of the company associated with the order."
+        },
+        "customer": {
+          "type": "string",
+          "description": "A JSON object containing denormalized customer information for quick access."
+        },
+        "items": {
+          "type": "array",
+          "description": "An array of JSON objects representing the items in the order.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shipping": {
+          "type": "string",
+          "description": "A JSON object representing the shipping details for the order."
+        },
+        "pricing": {
+          "type": "string",
+          "description": "A JSON object representing the pricing details for the order."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the order (pending, approved, packed, shipped, delivered, cancelled)."
+        },
+        "timeline": {
+          "type": "array",
+          "description": "An array of JSON objects representing the order timeline.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "comments": {
+          "type": "array",
+          "description": "An array of JSON objects representing the order comments.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "documents": {
+          "type": "string",
+          "description": "A JSON object containing the URLs for the order documents (packing slip, invoice)."
+        },
+        "metadata": {
+          "type": "string",
+          "description": "A JSON object representing the order metadata."
+        }
+      },
+      "required": [
+        "id",
+        "orderNumber",
+        "customerId",
+        "companyId",
+        "customer",
+        "items",
+        "shipping",
+        "pricing",
+        "status",
+        "timeline",
+        "comments",
+        "documents",
+        "metadata"
+      ]
+    },
+    "StockTransaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StockTransaction",
+      "type": "object",
+      "description": "Represents a stock transaction (in, out, adjustment).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the stock transaction. (Primary Key)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of transaction (in, out, adjustment)."
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to Product. (Relationship: Product 1:N StockTransaction). The ID of the product involved in the transaction."
+        },
+        "productName": {
+          "type": "string",
+          "description": "The name of the product involved in the transaction."
+        },
+        "sku": {
+          "type": "string",
+          "description": "The SKU of the product involved in the transaction."
+        },
+        "eanNumber": {
+          "type": "string",
+          "description": "The EAN number of the product involved in the transaction."
+        },
+        "quantities": {
+          "type": "string",
+          "description": "A JSON object representing the quantities involved in the transaction."
+        },
+        "deposit": {
+          "type": "string",
+          "description": "A JSON object representing the deposit information for the transaction."
+        },
+        "supplier": {
+          "type": "string",
+          "description": "A JSON object representing the supplier information for 'in' transactions. Nullable."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to Order. (Relationship: Order 1:N StockTransaction). The ID of the order associated with 'out' transactions. Nullable."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notes about the transaction."
+        },
+        "performedBy": {
+          "type": "string",
+          "description": "Reference to User. The ID of the user who performed the transaction."
+        },
+        "performedAt": {
+          "type": "string",
+          "description": "The timestamp when the transaction was performed.",
+          "format": "date-time"
+        },
+        "stockAfter": {
+          "type": "string",
+          "description": "A JSON object representing the stock levels after the transaction."
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "productId",
+        "productName",
+        "sku",
+        "eanNumber",
+        "quantities",
+        "deposit",
+        "performedBy",
+        "performedAt",
+        "stockAfter"
+      ]
+    },
+    "Invoice": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Invoice",
+      "type": "object",
+      "description": "Represents an invoice.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the invoice. (Primary Key)"
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "description": "The invoice number."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Invoice). The ID of the customer associated with the invoice."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Invoice). The ID of the company associated with the invoice."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to Order. (Relationship: Order 1:N Invoice). The ID of the order associated with the invoice. Nullable."
+        },
+        "customer": {
+          "type": "string",
+          "description": "A JSON object containing denormalized customer information."
+        },
+        "tripletex": {
+          "type": "string",
+          "description": "A JSON object containing Tripletex synchronization information."
+        },
+        "amounts": {
+          "type": "string",
+          "description": "A JSON object representing the invoice amounts."
+        },
+        "dates": {
+          "type": "string",
+          "description": "A JSON object representing the invoice dates."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the invoice (unpaid, paid, overdue, cancelled)."
+        },
+        "pdfUrl": {
+          "type": "string",
+          "description": "The URL of the invoice PDF."
+        },
+        "metadata": {
+          "type": "string",
+          "description": "A JSON object representing the invoice metadata."
+        }
+      },
+      "required": [
+        "id",
+        "invoiceNumber",
+        "customerId",
+        "companyId",
+        "customer",
+        "tripletex",
+        "amounts",
+        "dates",
+        "status",
+        "pdfUrl",
+        "metadata"
+      ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the notification. (Primary Key)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Notification). The ID of the user who the notification is for."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of notification (order, invoice, system, stock, user)."
+        },
+        "priority": {
+          "type": "string",
+          "description": "The priority of the notification (low, normal, high)."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the notification."
+        },
+        "message": {
+          "type": "string",
+          "description": "The message of the notification."
+        },
+        "actionUrl": {
+          "type": "string",
+          "description": "The URL to navigate to when the notification is clicked. Nullable."
+        },
+        "relatedData": {
+          "type": "string",
+          "description": "A JSON object containing IDs of related data (orderId, invoiceId, productId). Nullable"
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Indicates whether the notification has been read."
+        },
+        "readAt": {
+          "type": "string",
+          "description": "The timestamp when the notification was read. Nullable.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the notification was created.",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "description": "The timestamp when the notification expires. Nullable.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "priority",
+        "title",
+        "message",
+        "read",
+        "createdAt"
+      ]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a message in a conversation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the message. (Primary Key)"
+        },
+        "threadId": {
+          "type": "string",
+          "description": "The ID of the thread the message belongs to."
+        },
+        "from": {
+          "type": "string",
+          "description": "A JSON object representing the sender of the message."
+        },
+        "to": {
+          "type": "string",
+          "description": "A JSON object representing the recipient of the message."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to Order. (Relationship: Order 1:N Message). The ID of the order related to the message. Nullable."
+        },
+        "subject": {
+          "type": "string",
+          "description": "The subject of the message."
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of the message."
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Indicates whether the message has been read."
+        },
+        "readAt": {
+          "type": "string",
+          "description": "The timestamp when the message was read. Nullable.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the message was created.",
+          "format": "date-time"
+        },
+        "attachments": {
+          "type": "array",
+          "description": "An array of JSON objects representing the message attachments.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "threadId",
+        "from",
+        "to",
+        "subject",
+        "content",
+        "read",
+        "createdAt"
+      ]
+    },
+    "MonthlyReport": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MonthlyReport",
+      "type": "object",
+      "description": "Represents a monthly sales report.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the monthly report (format: YYYY-MM). (Primary Key)"
+        },
+        "year": {
+          "type": "number",
+          "description": "The year of the report."
+        },
+        "month": {
+          "type": "number",
+          "description": "The month of the report (1-12)."
+        },
+        "period": {
+          "type": "string",
+          "description": "The period of the report (YYYY-MM)."
+        },
+        "generatedAt": {
+          "type": "string",
+          "description": "The timestamp when the report was generated.",
+          "format": "date-time"
+        },
+        "generatedBy": {
+          "type": "string",
+          "description": "Reference to User. The ID of the user or system who generated the report."
+        },
+        "pdfUrl": {
+          "type": "string",
+          "description": "The URL of the report PDF."
+        },
+        "excelUrl": {
+          "type": "string",
+          "description": "The URL of the report Excel file. Nullable."
+        },
+        "summary": {
+          "type": "string",
+          "description": "A JSON object containing the report summary data."
+        },
+        "products": {
+          "type": "array",
+          "description": "An array of JSON objects representing the product sales data in the report.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "topCustomers": {
+          "type": "array",
+          "description": "An array of JSON objects representing the top customers in the report.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "categories": {
+          "type": "array",
+          "description": "An array of JSON objects representing the category sales data in the report.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "comparison": {
+          "type": "string",
+          "description": "A JSON object containing the comparison data with the previous month."
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "Indicates whether the report is locked and cannot be modified."
+        }
+      },
+      "required": [
+        "id",
+        "year",
+        "month",
+        "period",
+        "generatedAt",
+        "generatedBy",
+        "pdfUrl",
+        "summary",
+        "products",
+        "topCustomers",
+        "categories",
+        "comparison",
+        "locked"
+      ]
+    },
+    "StockBalance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StockBalance",
+      "type": "object",
+      "description": "Represents a stock balance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the stock balance. (Primary Key)"
+        },
+        "generatedAt": {
+          "type": "string",
+          "description": "The timestamp when the stock balance was generated.",
+          "format": "date-time"
+        },
+        "generatedBy": {
+          "type": "string",
+          "description": "Reference to User. The ID of the user who generated the stock balance."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of stock balance (manual, end-of-month)."
+        },
+        "products": {
+          "type": "array",
+          "description": "An array of JSON objects representing the product stock balances.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "totals": {
+          "type": "string",
+          "description": "A JSON object representing the total stock balance values."
+        },
+        "pdfUrl": {
+          "type": "string",
+          "description": "The URL of the stock balance PDF."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notes about the stock balance."
+        }
+      },
+      "required": [
+        "id",
+        "generatedAt",
+        "generatedBy",
+        "type",
+        "products",
+        "totals",
+        "pdfUrl",
+        "notes"
+      ]
+    },
+    "DiscountCode": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DiscountCode",
+      "type": "object",
+      "description": "Represents a discount code.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the discount code. (Primary Key)"
+        },
+        "code": {
+          "type": "string",
+          "description": "The discount code (e.g., SUMMER2024)."
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the discount code."
+        },
+        "discount": {
+          "type": "string",
+          "description": "A JSON object representing the discount value."
+        }
+      }
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Document ID is the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/companies/{companyId}",
+        "definition": {
+          "entityName": "Company",
+          "schema": {
+            "$ref": "#/backend/entities/Company"
+          },
+          "description": "Stores company information.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique ID of the company."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores product information.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique ID of the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores order information. Includes denormalized 'customer' data for authorization independence.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique ID of the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stock-transactions/{transactionId}",
+        "definition": {
+          "entityName": "StockTransaction",
+          "schema": {
+            "$ref": "#/backend/entities/StockTransaction"
+          },
+          "description": "Stores stock transaction history.",
+          "params": [
+            {
+              "name": "transactionId",
+              "description": "The unique ID of the stock transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/invoices/{invoiceId}",
+        "definition": {
+          "entityName": "Invoice",
+          "schema": {
+            "$ref": "#/backend/entities/Invoice"
+          },
+          "description": "Stores invoice information.",
+          "params": [
+            {
+              "name": "invoiceId",
+              "description": "The unique ID of the invoice."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notification data.",
+          "params": [
+            {
+              "name": "notificationId",
+              "description": "The unique ID of the notification."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/backend/entities/Message"
+          },
+          "description": "Stores message data.",
+          "params": [
+            {
+              "name": "messageId",
+              "description": "The unique ID of the message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/monthly-reports/{reportId}",
+        "definition": {
+          "entityName": "MonthlyReport",
+          "schema": {
+            "$ref": "#/backend/entities/MonthlyReport"
+          },
+          "description": "Stores monthly report data.",
+          "params": [
+            {
+              "name": "reportId",
+              "description": "The unique ID of the monthly report (YYYY-MM)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/stock-balances/{balanceId}",
+        "definition": {
+          "entityName": "StockBalance",
+          "schema": {
+            "$ref": "#/backend/entities/StockBalance"
+          },
+          "description": "Stores stock balance data.",
+          "params": [
+            {
+              "name": "balanceId",
+              "description": "The unique ID of the stock balance."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/discount-codes/{codeId}",
+        "definition": {
+          "entityName": "DiscountCode",
+          "schema": {
+            "$ref": "#/backend/entities/DiscountCode"
+          },
+          "description": "Stores discount code data.",
+          "params": [
+            {
+              "name": "codeId",
+              "description": "The unique ID of the discount code."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the B2B portal's core features, focusing on secure access control and scalability. The structure adheres to the principles of Authorization Independence, Structural Segregation, and Access Modeling.  \n\n**Authorization Independence:** This is achieved through denormalization, primarily in the `/orders` collection. The `customer` field within each order document contains denormalized customer data (company name, contact person, email, phone). This avoids the need for security rules to perform `get()` operations on the `/users` or `/companies` collections to authorize order access, enabling atomic operations and simplifying security rules.  Additionally, the `companyId` on the `/users` collection enables simple rules restricting access based on the user's associated company.\n\n**Structural Segregation:** The design separates data based on access requirements.  For example, `/users` stores user profiles, while `/companies` stores company information.  Each collection has distinct security rules tailored to its data. User-specific data like notifications is stored in `/users/{userId}/notifications`, ensuring only the user has access.\n\n**Access Modeling:**\n*   **Path-Based Ownership:** User-owned data (notifications) are stored under `/users/{userId}/notifications`, ensuring straightforward ownership-based security rules.\n*   **Collaborative Data:** While not explicitly present in this structure, a membership map approach could be used in the future if collaborative entities are introduced (e.g., shared product lists). If a `shared_product_lists` collection was introduced, and access depended on user membership, a `members: {uid1: \"role\", uid2: \"role\"}` map would be included in each document and denormalized into subcollections.\n*   **Global Roles (DBAC):** User roles are stored directly in the `/users` collection. This allows for simple security rules based on the user's `role` field, such as granting admin users access to all product data.\n\n**QAPs Support:**\n*   The structural segregation of user data into `/users/{userId}/notifications` enables secure `list` operations, as rules can easily filter notifications based on the requesting user's ID without relying on complex queries or `get()` calls.\n*   Global roles stored directly in `/users` allows admin users to securely `list` all products, orders, or other collections requiring broader access. The admin role can be verified directly from the `request.auth.uid` combined with a check on the user's document in `/users/{uid}` to see if `role == 'admin'`."
+  }
+}

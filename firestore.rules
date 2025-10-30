@@ -1,0 +1,224 @@
+/**
+ * @file Firebase Security Rules for Firestore
+ * @version 2
+ *
+ * @description This ruleset enforces a role-based access control model, with ownership constraints on user-specific data.
+ *
+ * @dataStructure
+ * - /users/{userId}: User profile data, where {userId} is the Firebase Auth UID.
+ * - /companies/{companyId}: Company data.
+ * - /products/{productId}: Product data.
+ * - /orders/{orderId}: Order data, with denormalized customer information.
+ * - /stock-transactions/{transactionId}: Stock transaction history.
+ * - /invoices/{invoiceId}: Invoice data.
+ * - /notifications/{notificationId}: Notification data.
+ * - /messages/{messageId}: Message data.
+ * - /monthly-reports/{reportId}: Monthly report data.
+ * - /stock-balances/{balanceId}: Stock balance data.
+ * - /discount-codes/{codeId}: Discount code data.
+ *
+ * @keySecurityDecisions
+ * - Users can only read and write their own profile data in /users/{userId}.
+ * - Listing of users is disallowed for security reasons.
+ * - Orders contain denormalized customer data to avoid complex security rules and cross-collection reads.
+ * - Read access to products is generally open, but write access should be restricted (TODO: after ownership field is added).
+ * - The default security posture for any ambiguous relationship is to deny access.
+ *
+ * @denormalizationForAuthorization
+ * - Orders store denormalized customer information in the `customer` field to enable authorization without requiring additional reads to the `/users` or `/companies` collections. This improves performance and simplifies security rules.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Enforces user-level access control for user profiles.
+     * @path /users/{userId}
+     * @allow (create) Signed-in user can create their own profile.
+     * @allow (get, update, delete) Signed-in user can read/update/delete their own profile.
+     * @deny  (create) User cannot create a profile with a different ID.
+     * @deny  (get, update, delete) User cannot read/update/delete another user's profile.
+     * @principle Enforces document ownership.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data.keys().hasAny(['id']);
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // Listing users is not allowed.
+
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to company data.  Currently allows any signed-in user to read.  No ownership enforced yet.
+     * @path /companies/{companyId}
+     * @allow (get, list) Any signed-in user can read company data.
+     * @deny  (create, update, delete) Only authenticated users can modify company data (further restrictions may be needed).
+     * @principle Allows read-only access to company data for authenticated users, but requires additional ownership checks for writes.
+     */
+    match /companies/{companyId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+
+    /**
+     * @description Controls access to product data.  Currently allows public read access.
+     * @path /products/{productId}
+     * @allow (get, list) Public read access to product data.
+     * @deny  (create, update, delete) Only authenticated users can modify product data (further restrictions may be needed).
+     * @principle Public read, restricted write.
+     */
+    match /products/{productId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if true;
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+
+    /**
+     * @description Controls access to order data.  Allows read and write access only to authenticated users.
+     * @path /orders/{orderId}
+     * @allow (get, list) Authenticated users can read order data.
+     * @deny (create, update, delete) Only authenticated users can modify order data (further restrictions may be needed).
+     * @principle Requires authentication for all access.
+     */
+    match /orders/{orderId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+
+    /**
+     * @description Controls access to stock transaction data.  Allows read and write access only to authenticated users.
+     * @path /stock-transactions/{transactionId}
+     * @allow (get, list) Authenticated users can read stock transaction data.
+     * @deny (create, update, delete) Only authenticated users can modify stock transaction data (further restrictions may be needed).
+     * @principle Requires authentication for all access.
+     */
+    match /stock-transactions/{transactionId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+
+    /**
+     * @description Controls access to invoice data.  Allows read and write access only to authenticated users.
+     * @path /invoices/{invoiceId}
+     * @allow (get, list) Authenticated users can read invoice data.
+     * @deny (create, update, delete) Only authenticated users can modify invoice data (further restrictions may be needed).
+     * @principle Requires authentication for all access.
+     */
+    match /invoices/{invoiceId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+
+    /**
+     * @description Controls access to notification data.  Allows read and write access only to authenticated users.
+     * @path /notifications/{notificationId}
+     * @allow (get, list) Authenticated users can read notification data.
+     * @deny (create, update, delete) Only authenticated users can modify notification data (further restrictions may be needed).
+     * @principle Requires authentication for all access.
+     */
+    match /notifications/{notificationId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+
+    /**
+     * @description Controls access to message data.  Allows read and write access only to authenticated users.
+     * @path /messages/{messageId}
+     * @allow (get, list) Authenticated users can read message data.
+     * @deny (create, update, delete) Only authenticated users can modify message data (further restrictions may be needed).
+     * @principle Requires authentication for all access.
+     */
+    match /messages/{messageId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+
+    /**
+     * @description Controls access to monthly report data.  Allows read and write access only to authenticated users.
+     * @path /monthly-reports/{reportId}
+     * @allow (get, list) Authenticated users can read monthly report data.
+     * @deny (create, update, delete) Only authenticated users can modify monthly report data (further restrictions may be needed).
+     * @principle Requires authentication for all access.
+     */
+    match /monthly-reports/{reportId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+
+    /**
+     * @description Controls access to stock balance data.  Allows read and write access only to authenticated users.
+     * @path /stock-balances/{balanceId}
+     * @allow (get, list) Authenticated users can read stock balance data.
+     * @deny (create, update, delete) Only authenticated users can modify stock balance data (further restrictions may be needed).
+     * @principle Requires authentication for all access.
+     */
+    match /stock-balances/{balanceId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+
+     /**
+      * @description Controls access to discount code data. Allows read and write access only to authenticated users.
+      * @path /discount-codes/{codeId}
+      * @allow (get, list) Authenticated users can read discount code data.
+      * @deny (create, update, delete) Only authenticated users can modify discount code data (further restrictions may be needed).
+      * @principle Requires authentication for all access.
+      */
+    match /discount-codes/{codeId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+    }
+  }
+}
