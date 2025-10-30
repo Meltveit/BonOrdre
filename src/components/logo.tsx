@@ -3,9 +3,12 @@ import { cn } from '@/lib/utils';
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <Wine className="h-6 w-6 text-primary" />
-      <span className="font-semibold font-headline text-lg">Booze B2B Portal</span>
+    <div className={cn("flex items-start gap-2", className)}>
+      <Wine className="h-8 w-8 text-primary mt-1" />
+      <div className='flex flex-col'>
+        <span className="font-semibold font-headline text-xl leading-none">BON B2B Portal</span>
+        <span className='text-sm text-muted-foreground'>Booze of Norway</span>
+      </div>
     </div>
   );
 }

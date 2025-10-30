@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 
 export const metadata: Metadata = {
-  title: "Booze B2B Portal",
+  title: "BON B2B Portal",
   description: "B2B Portal for wholesale beverage purchasing.",
 };
 
