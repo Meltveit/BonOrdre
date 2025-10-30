@@ -130,10 +130,16 @@ export default function LoginPage() {
       // The useEffect will handle the redirect after state update
     } catch (error: any) {
       console.error("Login Error:", error);
+      let description = "An unknown error occurred. Please try again.";
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        description = "Invalid email or password. Please try again.";
+      } else {
+        description = error.message || "Could not sign you in.";
+      }
       toast({
           variant: "destructive",
-          title: "Uh oh! Something went wrong.",
-          description: error.message || "Could not sign you in.",
+          title: "Login Failed",
+          description: description,
       });
     }
   };
