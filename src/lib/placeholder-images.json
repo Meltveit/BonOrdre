@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "login-background",
+      "description": "A stylish bar with a selection of spirits on display.",
+      "imageUrl": "https://images.unsplash.com/photo-1647185166593-2b2dd97a8927?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxiYXIlMjBzcGlyaXRzfGVufDB8fHx8MTc2MTgyNzc4NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "bar spirits"
+    },
+    {
+      "id": "whiskey-bottle",
+      "description": "A bottle of premium whiskey.",
+      "imageUrl": "https://images.unsplash.com/photo-1681040900846-52788cabe723?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx3aGlza2V5JTIwYm90dGxlfGVufDB8fHx8MTc2MTgwODYzNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "whiskey bottle"
+    },
+    {
+      "id": "wine-bottle",
+      "description": "A bottle of red wine.",
+      "imageUrl": "https://images.unsplash.com/photo-1611571940159-425a28706d6f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3aW5lJTIwYm90dGxlfGVufDB8fHx8MTc2MTc5OTczOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wine bottle"
+    },
+    {
+      "id": "beer-cans",
+      "description": "A collection of craft beer cans.",
+      "imageUrl": "https://images.unsplash.com/photo-1628533942022-ed16bbf2c3f6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxiZWVyJTIwY2Fuc3xlbnwwfHx8fDE3NjE4Mjc3ODV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "beer cans"
+    },
+    {
+      "id": "gin-bottle",
+      "description": "A bottle of artisanal gin.",
+      "imageUrl": "https://images.unsplash.com/photo-1542895324-076f3fb6c2cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxnaW4lMjBib3R0bGV8ZW58MHx8fHwxNzYxODA4NjM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "gin bottle"
+    },
+    {
+      "id": "vodka-bottle",
+      "description": "A bottle of premium vodka.",
+      "imageUrl": "https://images.unsplash.com/photo-1645784125144-4c06a561fc58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx2b2RrYSUyMGJvdHRsZXxlbnwwfHx8fDE3NjE3NDA1OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vodka bottle"
+    },
+    {
+      "id": "rum-bottle",
+      "description": "A bottle of dark rum.",
+      "imageUrl": "https://images.unsplash.com/photo-1716534436087-214198e3781e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxydW0lMjBib3R0bGV8ZW58MHx8fHwxNzYxODA4NjM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "rum bottle"
+    },
+    {
+      "id": "user-avatar-1",
+      "description": "Avatar for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjE3ODg3ODd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    }
+  ]
 }
