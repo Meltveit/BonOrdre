@@ -7,14 +7,16 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, User } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp, addDoc, collection } from "firebase/firestore";
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore } from "@/firebase";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,6 +30,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const loginImage = PlaceHolderImages.find(p => p.id === 'login-background');
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
@@ -42,9 +45,76 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isUserLoading && user) {
-      router.push('/dashboard');
+        // If user is admin, redirect to admin dashboard, else to customer dashboard
+        const userDocRef = doc(firestore, "users", user.uid);
+        getDoc(userDocRef).then(docSnap => {
+            if (docSnap.exists() && docSnap.data().role === 'admin') {
+                router.push('/admin');
+            } else {
+                router.push('/dashboard');
+            }
+        });
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, firestore]);
+
+    const handlePostLogin = async (loggedInUser: User) => {
+        if (!firestore) return;
+
+        const userDocRef = doc(firestore, "users", loggedInUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+            toast({
+                title: "Setting up your account...",
+                description: "Creating database entries for the first time.",
+            });
+
+            // Special case for your admin UID
+            const isAdminUser = loggedInUser.uid === '1PImCPdQ6AfYU412d2o6tKFjpte2';
+            const userRole = isAdminUser ? 'admin' : 'customer';
+
+            // 1. Create a new company document in Firestore
+            const companyRef = await addDoc(collection(firestore, "companies"), {
+                name: "Default Company",
+                orgNumber: "000000000",
+                companyType: "other",
+                contactEmail: loggedInUser.email,
+                contactPhone: "N/A",
+                contactPerson: {
+                    firstName: "Admin",
+                    lastName: "User",
+                },
+                billingAddress: { street: "", zip: "", city: "", country: "Norway" },
+                visitingAddress: { street: "", zip: "", city: "", country: "Norway" },
+                shippingAddresses: [],
+                pricing: { freeShippingThreshold: 0, hasCustomPricing: false, discountPercentage: 0 },
+                active: true,
+                approved: true,
+                registeredAt: serverTimestamp(),
+                approvedAt: serverTimestamp(),
+                approvedBy: "system",
+                adminNotes: "Automatically created for existing auth user."
+            });
+
+            // 2. Create the user document in Firestore
+            await setDoc(userDocRef, {
+                role: userRole,
+                companyId: companyRef.id,
+                email: loggedInUser.email,
+                firstName: "Admin",
+                lastName: "User",
+                phone: "N/A",
+                approved: true,
+                active: true,
+                createdAt: serverTimestamp(),
+                lastLogin: serverTimestamp(),
+                notificationSettings: { emailNotifications: true, inAppNotifications: true, orderUpdates: true, invoiceUpdates: true, stockAlerts: false },
+                permissions: { canManageProducts: isAdminUser, canManageOrders: isAdminUser, canManageStock: isAdminUser, canViewReports: isAdminUser }
+            });
+        } else {
+             await setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true });
+        }
+    }
 
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     if (!auth) return;
@@ -55,8 +125,9 @@ export default function LoginPage() {
     });
 
     try {
-      await signInWithEmailAndPassword(auth, data.email, data.password);
-      // The useEffect will handle the redirect
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      await handlePostLogin(userCredential.user);
+      // The useEffect will handle the redirect after state update
     } catch (error: any) {
       console.error("Login Error:", error);
       toast({
@@ -76,7 +147,11 @@ export default function LoginPage() {
   }
 
   if(user) {
-    return null;
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <p>Redirecting...</p>
+        </div>
+    );
   }
 
   return (

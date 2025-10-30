@@ -9,6 +9,7 @@ import {
   Search,
   ShoppingCart,
   Users2,
+  LogOut,
 } from "lucide-react";
 
 import {
@@ -32,9 +33,21 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import type { NavItem } from "@/lib/definitions";
+import { useAuth } from "@/firebase";
+import { useRouter } from "next/navigation";
 
 export function DashboardHeader({ navItems }: { navItems: NavItem[] }) {
     const avatar = PlaceHolderImages.find(p => p.id === 'user-avatar-1');
+    const auth = useAuth();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        if (auth) {
+            await auth.signOut();
+            router.push('/');
+        }
+    };
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet>
@@ -110,7 +123,10 @@ export function DashboardHeader({ navItems }: { navItems: NavItem[] }) {
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Logout</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Logout</span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

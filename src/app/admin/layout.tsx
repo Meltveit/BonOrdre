@@ -7,11 +7,17 @@ import {
   LineChart,
   Package2,
   Settings,
+  Bell,
+  LogOut,
 } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DashboardHeader } from "@/components/dashboard-header";
 import type { NavItem } from "@/lib/definitions";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/firebase";
+import { useRouter } from "next/navigation";
+
 
 const navItems: NavItem[] = [
     { href: "/admin", icon: Home, label: "Dashboard" },
@@ -26,6 +32,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
