@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   Users2,
   LogOut,
+  User,
 } from "lucide-react";
 
 import {
@@ -39,7 +40,6 @@ import { useAuth } from "@/firebase";
 import { useRouter } from "next/navigation";
 
 export function DashboardHeader({ navItems }: { navItems: NavItem[] }) {
-    const avatar = PlaceHolderImages.find(p => p.id === 'user-avatar-1');
     const auth = useAuth();
     const router = useRouter();
 
@@ -109,14 +109,8 @@ export function DashboardHeader({ navItems }: { navItems: NavItem[] }) {
             size="icon"
             className="overflow-hidden rounded-full"
           >
-            {avatar && <Image
-              src={avatar.imageUrl}
-              width={36}
-              height={36}
-              alt="Avatar"
-              data-ai-hint={avatar.imageHint}
-              className="overflow-hidden rounded-full"
-            />}
+            <User className="h-5 w-5" />
+            <span className="sr-only">Toggle user menu</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
