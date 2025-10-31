@@ -46,7 +46,7 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (isUserLoading || !firestore) return; // Wait for user and firestore
+    if (isUserLoading || !firestore) return;
     
     const checkUser = async (user: User) => {
         const userDocRef = doc(firestore, "users", user.uid);
@@ -55,23 +55,38 @@ export default function LoginPage() {
         if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
             router.push('/admin');
         } else if (userDocSnap.exists()) {
-            const companyDocRef = doc(firestore, "companies", userDocSnap.data().companyId);
+            const companyId = userDocSnap.data().companyId;
+            if (!companyId) {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Login Error',
+                    description: "Your user is not associated with a company."
+                });
+                auth?.signOut();
+                setAuthChecked(true);
+                return;
+            }
+            const companyDocRef = doc(firestore, "companies", companyId);
             const companyDocSnap = await getDoc(companyDocRef);
             if (companyDocSnap.exists() && companyDocSnap.data().approved) {
                  router.push('/dashboard');
             } else {
-                // Not approved, keep them on a waiting screen or log them out
                 toast({
                     variant: 'destructive',
                     title: 'Account Not Approved',
                     description: "Your account is still awaiting admin approval. Please check back later."
                 });
                 auth?.signOut();
-                setAuthChecked(true); // Allow rendering the login form
+                setAuthChecked(true); 
             }
         } else {
-            // Fallback for customer if user doc doesn't exist for some reason
-            router.push('/dashboard');
+             toast({
+                variant: 'destructive',
+                title: 'Login Error',
+                description: "User data not found."
+            });
+            auth?.signOut();
+            setAuthChecked(true);
         }
     }
 
@@ -81,7 +96,7 @@ export default function LoginPage() {
         setAuthChecked(true);
     }
 
-  }, [user, isUserLoading, router, firestore, auth]);
+  }, [user, isUserLoading, router, firestore, auth, toast]);
 
     const handlePostLogin = async (loggedInUser: User) => {
         if (!firestore) return;
@@ -126,7 +141,7 @@ export default function LoginPage() {
     }
   };
 
-  if (!authChecked) {
+  if (!authChecked || (isUserLoading && !user)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Loading...</p>

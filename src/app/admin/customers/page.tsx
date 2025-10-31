@@ -35,17 +35,18 @@ export default function AdminCustomersPage() {
     const companiesRef = useMemoFirebase(() => firestore ? collection(firestore, 'companies') : null, [firestore]);
     const { data: companies, isLoading } = useCollection<Company>(companiesRef);
 
-    const getBadgeVariant = (approved: boolean, active: boolean) => {
+    const getBadgeVariant = (approved: boolean, active: boolean): "default" | "secondary" | "destructive" | "outline" => {
         if (approved && active) return 'default';
-        if (!approved) return 'secondary';
-        if (!active) return 'destructive';
+        if (!approved && active) return 'secondary'; // Pending approval
+        if (!active && !approved) return 'destructive'; // Rejected
         return 'outline';
     }
 
     const getStatusText = (approved: boolean, active: boolean) => {
         if (approved && active) return 'Approved';
         if (!approved && active) return 'Pending Approval';
-        if (!active) return 'Deactivated';
+        if (!active && !approved) return 'Rejected';
+        if (!active && approved) return 'Deactivated';
         return 'Unknown';
     }
 
@@ -60,7 +61,9 @@ export default function AdminCustomersPage() {
         try {
             await updateDoc(companyDocRef, {
                 approved: approve,
-                active: approve, // Activate when approving, deactivate when rejecting
+                // If we reject, the company should also become inactive.
+                // If we approve, it becomes active.
+                active: approve, 
             });
             toast({ title: `Company ${actionDoneText}` });
         } catch (error: any) {
@@ -72,6 +75,27 @@ export default function AdminCustomersPage() {
             });
         }
     };
+    
+    const handleDeactivation = async (companyId: string, deactivate: boolean) => {
+        if (!firestore) return;
+        const companyDocRef = doc(firestore, "companies", companyId);
+        const actionText = deactivate ? 'Deactivating' : 'Activating';
+        const actionDoneText = deactivate ? 'Deactivated' : 'Activated';
+        
+        toast({ title: `${actionText} company...`});
+
+        try {
+            await updateDoc(companyDocRef, { active: !deactivate });
+            toast({ title: `Company ${actionDoneText}` });
+        } catch(error: any) {
+             console.error(`Error ${actionText.toLowerCase()} company:`, error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: `Could not update company status. ${error.message}`
+            });
+        }
+    }
 
 
   return (
@@ -129,8 +153,13 @@ export default function AdminCustomersPage() {
                             <DropdownMenuSeparator />
                         </>
                       )}
+                       {company.approved && (
+                         <DropdownMenuItem onClick={() => handleDeactivation(company.id, company.active)} className={company.active ? 'text-destructive' : ''}>
+                            {company.active ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
+                       )}
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem>View Details</DropdownMenuItem>
-                      <DropdownMenuItem>View Orders</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
