@@ -64,7 +64,7 @@ const signupSchema = z.object({
         if (!data.billingAddressZip) ctx.addIssue({ code: "custom", path: ["billingAddressZip"], message: "Postal code is required." });
         if (!data.billingAddressCity) ctx.addIssue({ code: "custom", path: ["billingAddressCity"], message: "City is required." });
     }
-    if (!data.useBillingAsDelivery && !data.useVisitingAsBilling) { // Correction: Check if not using visiting for billing too
+    if (!data.useBillingAsDelivery && !data.useVisitingAsBilling) { 
         if (!data.deliveryAddressStreet) ctx.addIssue({ code: "custom", path: ["deliveryAddressStreet"], message: "Delivery address is required." });
         if (!data.deliveryAddressZip) ctx.addIssue({ code: "custom", path: ["deliveryAddressZip"], message: "Postal code is required." });
         if (!data.deliveryAddressCity) ctx.addIssue({ code: "custom", path: ["deliveryAddressCity"], message: "City is required." });
@@ -247,21 +247,25 @@ export default function SignupPage() {
                                     </div>
                                 </div>
                                 
-                                <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={form.watch('useVisitingAsBilling')}
-                                      onCheckedChange={(checked) => {
-                                        form.setValue('useVisitingAsBilling', checked as boolean)
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel className="font-normal">
-                                      Billing address is the same as visiting address
-                                    </FormLabel>
-                                  </div>
-                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="useVisitingAsBilling"
+                                    render={({ field }) => (
+                                        <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                            <FormControl>
+                                                <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel className="font-normal">
+                                                Billing address is the same as visiting address
+                                                </FormLabel>
+                                            </div>
+                                        </div>
+                                    )}
+                                />
 
                                 {!useVisitingAsBilling && (
                                     <div className="space-y-4 pl-4 border-l">
@@ -274,22 +278,25 @@ export default function SignupPage() {
                                     </div>
                                 )}
 
-                                <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={form.watch('useBillingAsDelivery')}
-                                      onCheckedChange={(checked) => {
-                                        form.setValue('useBillingAsDelivery', checked as boolean)
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel className="font-normal">
-                                      Delivery address is the same as billing address
-                                    </FormLabel>
-                                  </div>
-                                </div>
-
+                                <FormField
+                                    control={form.control}
+                                    name="useBillingAsDelivery"
+                                    render={({ field }) => (
+                                        <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                            <FormControl>
+                                                <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel className="font-normal">
+                                                Delivery address is the same as billing address
+                                                </FormLabel>
+                                            </div>
+                                        </div>
+                                    )}
+                                />
 
                                 {!useBillingAsDelivery && !useVisitingAsBilling && (
                                     <div className="space-y-4 pl-4 border-l">
@@ -321,21 +328,34 @@ export default function SignupPage() {
                                 <FormField control={form.control} name="comments" render={({ field }) => (<FormItem><FormLabel>Comments (Optional)</FormLabel><FormControl><Textarea placeholder="Any extra information for the admin team..." {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
                             
-                           <div className="items-top flex space-x-2">
-                              <Checkbox id="terms" {...form.register('acceptTerms')} />
-                              <div className="grid gap-1.5 leading-none">
-                                <label
-                                  htmlFor="terms"
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                >
-                                  I accept the terms and conditions
-                                </label>
-                                <p className="text-sm text-muted-foreground">
-                                   You agree to our <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
-                                </p>
-                                {form.formState.errors.acceptTerms && <p className="text-sm font-medium text-destructive">{form.formState.errors.acceptTerms.message}</p>}
-                              </div>
-                            </div>
+                            <FormField
+                                control={form.control}
+                                name="acceptTerms"
+                                render={({ field }) => (
+                                    <div className="items-top flex space-x-2">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                id="terms"
+                                            />
+                                        </FormControl>
+                                        <div className="grid gap-1.5 leading-none">
+                                            <label
+                                            htmlFor="terms"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                            I accept the terms and conditions
+                                            </label>
+                                            <p className="text-sm text-muted-foreground">
+                                            You agree to our <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
+                                            </p>
+                                            <FormMessage />
+                                        </div>
+                                    </div>
+                                )}
+                            />
+
 
                             <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}</Button>
                         </form>
@@ -346,5 +366,7 @@ export default function SignupPage() {
         </div>
     );
 
+
+    
 
     
