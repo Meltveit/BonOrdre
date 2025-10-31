@@ -26,6 +26,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 const signupSchema = z.object({
     companyName: z.string().min(1, { message: "Company name is required." }),
     orgNumber: z.string().min(9, { message: "Organization number must be at least 9 digits." }),
@@ -247,7 +250,7 @@ export default function SignupPage() {
                                     control={form.control}
                                     name="useVisitingAsBilling"
                                     render={({ field }) => (
-                                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                             <FormControl>
                                                 <Checkbox
                                                     checked={field.value}
@@ -255,7 +258,7 @@ export default function SignupPage() {
                                                 />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel>
+                                                <FormLabel className="font-normal">
                                                     Billing address is the same as visiting address
                                                 </FormLabel>
                                             </div>
@@ -278,15 +281,15 @@ export default function SignupPage() {
                                     control={form.control}
                                     name="useBillingAsDelivery"
                                     render={({ field }) => (
-                                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                             <FormControl>
                                                 <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
                                                 />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel>
+                                                <FormLabel className="font-normal">
                                                     Delivery address is the same as billing address
                                                 </FormLabel>
                                             </div>
@@ -323,7 +326,7 @@ export default function SignupPage() {
                                 <h3 className="font-semibold text-lg font-headline">Additional Information</h3>
                                 <FormField control={form.control} name="comments" render={({ field }) => (<FormItem><FormLabel>Comments (Optional)</FormLabel><FormControl><Textarea placeholder="Any extra information for the admin team..." {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
-                            
+
                             <FormField
                                 control={form.control}
                                 name="acceptTerms"
@@ -333,15 +336,22 @@ export default function SignupPage() {
                                             <Checkbox
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
-                                                id="terms"
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
-                                            <Label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            I accept the terms and conditions
-                                            </Label>
+                                            <FormLabel className="font-normal">
+                                                I accept the terms and conditions
+                                            </FormLabel>
                                             <FormDescription>
-                                            You agree to our <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
+                                                You agree to our{" "}
+                                                <Link href="/terms" className="underline hover:text-primary">
+                                                    Terms of Service
+                                                </Link>
+                                                {" "}and{" "}
+                                                <Link href="/privacy" className="underline hover:text-primary">
+                                                    Privacy Policy
+                                                </Link>
+                                                .
                                             </FormDescription>
                                             <FormMessage />
                                         </div>
@@ -349,11 +359,21 @@ export default function SignupPage() {
                                 )}
                             />
 
-
-                            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}</Button>
+                            <Button 
+                                type="submit" 
+                                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" 
+                                disabled={form.formState.isSubmitting}
+                            >
+                                {form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}
+                            </Button>
                         </form>
                     </Form>
-                    <div className="mt-4 text-center text-sm">Already have an account? <Link href="/" className="underline">Sign in</Link></div>
+                    <div className="mt-4 text-center text-sm">
+                        Already have an account?{" "}
+                        <Link href="/" className="underline">
+                            Sign in
+                        </Link>
+                    </div>
                 </CardContent>
             </Card>
         </div>
