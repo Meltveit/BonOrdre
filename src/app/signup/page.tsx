@@ -184,17 +184,23 @@ export default function SignupPage() {
                 comments: data.comments || "",
             });
 
+            // THIS IS THE FIX: Set user role to 'admin' if they don't have a companyId
+            // Otherwise, they are a 'customer'
+            const userRole = companyRef.id ? 'customer' : 'admin';
+
             // Create user profile document
             await setDoc(doc(firestore, "users", userId), {
                 id: userId,
                 email: data.contactEmail,
                 firstName: data.firstName,
                 lastName: data.lastName,
-                role: "customer",
-                companyId: companyRef.id,
+                role: userRole,
+                companyId: companyRef.id || null, // Ensure companyId is present
                 active: true,
+                approved: userRole === 'admin', // Admins are approved by default
                 createdAt: serverTimestamp(),
             });
+
 
             toast({
                 title: "Registration successful!",
