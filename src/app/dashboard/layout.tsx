@@ -11,10 +11,14 @@ import {
   Settings,
   User,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DashboardHeader } from "@/components/dashboard-header";
 import type { NavItem } from "@/lib/definitions";
+import { useUser, useFirestore } from "@/firebase";
 
 const navItems: NavItem[] = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
@@ -27,6 +31,32 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (isUserLoading || !firestore) return; // Wait until loading is finished
+
+        if (!user) {
+            router.push('/'); // If no user, send to login
+            return;
+        }
+
+        // Check if the user is an admin, if so, redirect them to the admin dashboard
+        const userDocRef = doc(firestore, "users", user.uid);
+        getDoc(userDocRef).then(docSnap => {
+            if (docSnap.exists() && docSnap.data().role === 'admin') {
+                router.push('/admin');
+            }
+        });
+    }, [user, isUserLoading, firestore, router]);
+
+    // Show a loading state while checking for user and role
+    if (isUserLoading) {
+        return <div className="flex h-screen items-center justify-center"><p>Loading dashboard...</p></div>
+    }
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">

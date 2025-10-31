@@ -46,59 +46,13 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // Wait until firebase auth is initialized and user is loaded
-    if (isUserLoading || !firestore) {
-      return;
+    // This effect will run when the auth state is confirmed.
+    // It redirects any logged-in user to the main dashboard.
+    // The dashboard or admin layout will then handle role-specific redirection.
+    if (!isUserLoading && user) {
+      router.push('/dashboard');
     }
-
-    // If a user is logged in, check their role and redirect.
-    if (user) {
-        const checkUserRoleAndRedirect = async (currentUser: User) => {
-            const userDocRef = doc(firestore, "users", currentUser.uid);
-            const userDocSnap = await getDoc(userDocRef);
-
-            if (userDocSnap.exists()) {
-                const userData = userDocSnap.data();
-
-                if (userData.role === 'admin') {
-                    router.push('/admin');
-                    return;
-                }
-                
-                if (userData.role === 'customer') {
-                    const companyId = userData.companyId;
-                    if (!companyId) {
-                        toast({ variant: 'destructive', title: 'Login Error', description: "Your user is not associated with a company." });
-                        await auth?.signOut();
-                        return;
-                    }
-
-                    const companyDocRef = doc(firestore, "companies", companyId);
-                    const companyDocSnap = await getDoc(companyDocRef);
-
-                    if (companyDocSnap.exists() && companyDocSnap.data().approved) {
-                        router.push('/dashboard');
-                    } else {
-                        toast({ variant: 'destructive', title: 'Account Not Approved', description: "Your account is awaiting admin approval. Please check back later." });
-                        await auth?.signOut();
-                    }
-                    return;
-                }
-                
-                // If role is not admin or customer
-                toast({ variant: 'destructive', title: 'Login Error', description: "Your user role is not configured for login." });
-                await auth?.signOut();
-
-            } else {
-                toast({ variant: 'destructive', title: 'Login Error', description: "User data not found." });
-                await auth?.signOut();
-            }
-        };
-
-      checkUserRoleAndRedirect(user);
-    }
-    // If no user, do nothing and show the login page.
-  }, [user, isUserLoading, firestore, router, auth, toast]);
+  }, [user, isUserLoading, router]);
 
     const handlePostLogin = async (loggedInUser: User) => {
         if (!firestore) return;
@@ -127,6 +81,8 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       await handlePostLogin(userCredential.user);
       // The useEffect will handle the redirect after auth state changes.
+      // Explicitly redirecting here as a fallback.
+      router.push('/dashboard');
     } catch (error: any) {
       console.error("Login Error:", error);
       let description = "An unknown error occurred. Please try again.";
@@ -144,19 +100,10 @@ export default function LoginPage() {
   };
 
   // While checking user auth state, show a loading indicator.
-  if (isUserLoading) {
+  if (isUserLoading || user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Loading...</p>
-      </div>
-    );
-  }
-
-  // If user is already logged in, show a redirecting message.
-  if (user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Redirecting...</p>
       </div>
     );
   }
