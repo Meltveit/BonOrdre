@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signInWithEmailAndPassword, User } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp, DocumentSnapshot } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ import { Logo } from "@/components/logo";
 import { useAuth, useUser, useFirestore } from "@/firebase";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import type { Company } from "@/lib/definitions";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 
@@ -46,9 +45,8 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // This effect will run when the auth state is confirmed.
-    // It redirects any logged-in user to the main dashboard.
-    // The dashboard or admin layout will then handle role-specific redirection.
+    // This effect redirects any already logged-in user away from the login page.
+    // The actual role-based routing will happen in the layout components.
     if (!isUserLoading && user) {
       router.push('/dashboard');
     }
@@ -80,9 +78,11 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       await handlePostLogin(userCredential.user);
-      // The useEffect will handle the redirect after auth state changes.
-      // Explicitly redirecting here as a fallback.
+      
+      // After successful login, always push to /dashboard.
+      // The layout for /dashboard will then handle the role-based redirect.
       router.push('/dashboard');
+
     } catch (error: any) {
       console.error("Login Error:", error);
       let description = "An unknown error occurred. Please try again.";
@@ -99,7 +99,7 @@ export default function LoginPage() {
     }
   };
 
-  // While checking user auth state, show a loading indicator.
+  // While checking auth state, or if a user is already logged in and being redirected, show loading.
   if (isUserLoading || user) {
     return (
       <div className="flex items-center justify-center min-h-screen">

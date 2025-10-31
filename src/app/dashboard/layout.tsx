@@ -34,27 +34,46 @@ export default function DashboardLayout({
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const router = useRouter();
+    const [isRoleChecked, setIsRoleChecked] = useState(false);
 
     useEffect(() => {
-        if (isUserLoading || !firestore) return; // Wait until loading is finished
+        if (isUserLoading || !firestore) return; // Wait until Firebase is ready
 
         if (!user) {
             router.push('/'); // If no user, send to login
             return;
         }
 
-        // Check if the user is an admin, if so, redirect them to the admin dashboard
-        const userDocRef = doc(firestore, "users", user.uid);
-        getDoc(userDocRef).then(docSnap => {
-            if (docSnap.exists() && docSnap.data().role === 'admin') {
-                router.push('/admin');
+        // This is the "gatekeeper" logic.
+        const checkRoleAndRedirect = async () => {
+            const userDocRef = doc(firestore, "users", user.uid);
+            try {
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists() && docSnap.data().role === 'admin') {
+                    // If user is an admin, redirect them to the admin dashboard.
+                    router.push('/admin');
+                } else {
+                    // Otherwise, they are a regular user, so allow them to see the customer dashboard.
+                    setIsRoleChecked(true);
+                }
+            } catch (error) {
+                console.error("Error checking user role:", error);
+                // If there's an error, let them stay but something is wrong.
+                setIsRoleChecked(true);
             }
-        });
+        };
+
+        checkRoleAndRedirect();
+
     }, [user, isUserLoading, firestore, router]);
 
-    // Show a loading state while checking for user and role
-    if (isUserLoading || (user && firestore && !user.isAnonymous && user.providerData[0]?.providerId !== 'anonymous' && doc(firestore, "users", user.uid) && getDoc(doc(firestore, "users", user.uid)).then(d => d.exists() && d.data()?.role === 'admin'))) {
-        return <div className="flex h-screen items-center justify-center"><p>Loading dashboard...</p></div>
+    // Show a loading state while checking user role to prevent flashing the customer dashboard to an admin.
+    if (!isRoleChecked || isUserLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <p>Loading dashboard...</p>
+            </div>
+        );
     }
 
   return (
