@@ -251,7 +251,7 @@ export default function SignupPage() {
                                     control={form.control}
                                     name="useVisitingAsBilling"
                                     render={({ field }) => (
-                                        <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                             <FormControl>
                                                 <Checkbox
                                                 checked={field.value}
@@ -263,7 +263,7 @@ export default function SignupPage() {
                                                 Billing address is the same as visiting address
                                                 </FormLabel>
                                             </div>
-                                        </div>
+                                        </FormItem>
                                     )}
                                 />
 
@@ -282,7 +282,7 @@ export default function SignupPage() {
                                     control={form.control}
                                     name="useBillingAsDelivery"
                                     render={({ field }) => (
-                                        <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                             <FormControl>
                                                 <Checkbox
                                                 checked={field.value}
@@ -294,7 +294,7 @@ export default function SignupPage() {
                                                 Delivery address is the same as billing address
                                                 </FormLabel>
                                             </div>
-                                        </div>
+                                        </FormItem>
                                     )}
                                 />
 
@@ -332,7 +332,7 @@ export default function SignupPage() {
                                 control={form.control}
                                 name="acceptTerms"
                                 render={({ field }) => (
-                                    <div className="items-top flex space-x-2">
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                         <FormControl>
                                             <Checkbox
                                                 checked={field.value}
@@ -352,7 +352,7 @@ export default function SignupPage() {
                                             </p>
                                             <FormMessage />
                                         </div>
-                                    </div>
+                                    </FormItem>
                                 )}
                             />
 
@@ -365,8 +365,4 @@ export default function SignupPage() {
             </Card>
         </div>
     );
-
-
-    
-
-    
+}
