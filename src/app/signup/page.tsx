@@ -175,7 +175,7 @@ export default function SignupPage() {
                 pricing: {
                     customerSpecific: false,
                 },
-                active: false, // Changed from true to false
+                active: true,
                 approved: false,
                 registeredAt: serverTimestamp(),
                 comments: data.comments || "",
@@ -197,10 +197,6 @@ export default function SignupPage() {
                 description: "Your application has been submitted and is pending approval. You will be redirected.",
             });
 
-            // Sign out the user immediately after registration
-            await auth.signOut();
-            
-            // Redirect to login page after a short delay
             setTimeout(() => {
                 router.push("/");
             }, 2000);
@@ -622,23 +618,20 @@ export default function SignupPage() {
                                             onCheckedChange={field.onChange}
                                         />
                                         <div className="space-y-1 leading-none">
-                                            <label
-                                                htmlFor="terms"
-                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                                >
+                                            <FormLabel className="font-normal">
                                                 I accept the{" "}
                                                 <Link href="/terms" className="underline">
                                                     terms and conditions
                                                 </Link>
-                                            </label>
+                                            </FormLabel>
                                             <FormMessage />
                                         </div>
                                     </FormItem>
                                 )}
                             />
 
-                            <Button type="submit" className="w-full" size="lg" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting ? 'Submitting...' : 'Submit Application'}
+                            <Button type="submit" className="w-full" size="lg">
+                                Create Account
                             </Button>
 
                             <div className="text-center text-sm">
@@ -653,3 +646,4 @@ export default function SignupPage() {
             </Card>
         </div>
     );
+}
