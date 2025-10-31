@@ -64,7 +64,7 @@ const signupSchema = z.object({
         if (!data.billingAddressZip) ctx.addIssue({ code: "custom", path: ["billingAddressZip"], message: "Postal code is required." });
         if (!data.billingAddressCity) ctx.addIssue({ code: "custom", path: ["billingAddressCity"], message: "City is required." });
     }
-    if (!data.useBillingAsDelivery) {
+    if (!data.useBillingAsDelivery && !data.useVisitingAsBilling) {
         if (!data.deliveryAddressStreet) ctx.addIssue({ code: "custom", path: ["deliveryAddressStreet"], message: "Delivery address is required." });
         if (!data.deliveryAddressZip) ctx.addIssue({ code: "custom", path: ["deliveryAddressZip"], message: "Postal code is required." });
         if (!data.deliveryAddressCity) ctx.addIssue({ code: "custom", path: ["deliveryAddressCity"], message: "City is required." });
@@ -76,7 +76,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export default function SignupPage() {
     const auth = useAuth();
     const firestore = useFirestore();
-    const { user, isUserLoading } = useUser();
+    const user = useUser();
     const router = useRouter();
     const { toast } = useToast();
     
@@ -93,11 +93,11 @@ export default function SignupPage() {
             visitingAddressStreet: "",
             visitingAddressZip: "",
             visitingAddressCity: "",
-            useVisitingAsBilling: true,
+            useVisitingAsBilling: false,
             billingAddressStreet: "",
             billingAddressZip: "",
             billingAddressCity: "",
-            useBillingAsDelivery: true,
+            useBillingAsDelivery: false,
             deliveryAddressStreet: "",
             deliveryAddressZip: "",
             deliveryAddressCity: "",
@@ -107,143 +107,130 @@ export default function SignupPage() {
         },
     });
 
-    const useVisitingAsBilling = form.watch('useVisitingAsBilling');
-    const useBillingAsDelivery = form.watch('useBillingAsDelivery');
+    const useVisitingAsBilling = form.watch("useVisitingAsBilling");
+    const useBillingAsDelivery = form.watch("useBillingAsDelivery");
 
     useEffect(() => {
-        if (isUserLoading || !firestore) return;
-        if (user) {
-            const userDocRef = doc(firestore, "users", user.uid);
-            getDoc(userDocRef).then(docSnap => {
-                if (docSnap.exists() && docSnap.data().role === 'admin') {
-                    router.push('/admin');
-                } else {
-                    router.push('/dashboard');
-                }
-            });
+        if (useVisitingAsBilling) {
+            const visitingStreet = form.getValues("visitingAddressStreet");
+            const visitingZip = form.getValues("visitingAddressZip");
+            const visitingCity = form.getValues("visitingAddressCity");
+            form.setValue("billingAddressStreet", visitingStreet);
+            form.setValue("billingAddressZip", visitingZip);
+            form.setValue("billingAddressCity", visitingCity);
         }
-    }, [user, isUserLoading, router, firestore]);
+    }, [useVisitingAsBilling, form]);
+
+    useEffect(() => {
+        if (useBillingAsDelivery) {
+            const billingStreet = form.getValues("billingAddressStreet");
+            const billingZip = form.getValues("billingAddressZip");
+            const billingCity = form.getValues("billingAddressCity");
+            form.setValue("deliveryAddressStreet", billingStreet);
+            form.setValue("deliveryAddressZip", billingZip);
+            form.setValue("deliveryAddressCity", billingCity);
+        }
+    }, [useBillingAsDelivery, form]);
+
+    useEffect(() => {
+        if (user) {
+            router.push("/dashboard");
+        }
+    }, [user, router]);
 
     const onSubmit: SubmitHandler<SignupFormData> = async (data) => {
         if (!auth || !firestore) {
             toast({
-                variant: "destructive",
                 title: "Error",
-                description: "Firebase is not initialized.",
+                description: "Firebase services not available. Please try again later.",
+                variant: "destructive",
             });
             return;
         }
 
-        toast({
-            title: "Creating your account...",
-            description: "Please wait.",
-        });
-
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
-            const userId = userCredential.user.uid;
+            const uid = userCredential.user.uid;
 
-            const visitingAddress = {
-                street: data.visitingAddressStreet,
-                zip: data.visitingAddressZip,
-                city: data.visitingAddressCity,
-            };
+            await setDoc(doc(firestore, 'users', uid), {
+                email: data.contactEmail,
+                role: 'customer',
+                companyId: uid,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                phone: data.contactPhone,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            });
 
-            const billingAddress = data.useVisitingAsBilling 
-                ? visitingAddress 
-                : {
-                    street: data.billingAddressStreet || "",
-                    zip: data.billingAddressZip || "",
-                    city: data.billingAddressCity || "",
-                };
-
-            let deliveryAddress;
-            if (data.useBillingAsDelivery) {
-                deliveryAddress = billingAddress;
-            } else if (data.useVisitingAsBilling) {
-                deliveryAddress = visitingAddress;
-            } else {
-                deliveryAddress = {
-                    street: data.deliveryAddressStreet || "",
-                    zip: data.deliveryAddressZip || "",
-                    city: data.deliveryAddressCity || "",
-                };
-            }
-
-            const companyRef = await addDoc(collection(firestore, "companies"), {
+            await setDoc(doc(firestore, 'companies', uid), {
                 name: data.companyName,
                 orgNumber: data.orgNumber,
-                companyType: data.companyType,
-                contactEmail: data.contactEmail,
-                contactPhone: data.contactPhone,
+                type: data.companyType,
+                visitingAddress: {
+                    street: data.visitingAddressStreet,
+                    zip: data.visitingAddressZip,
+                    city: data.visitingAddressCity,
+                },
+                billingAddress: {
+                    street: data.billingAddressStreet || data.visitingAddressStreet,
+                    zip: data.billingAddressZip || data.visitingAddressZip,
+                    city: data.billingAddressCity || data.visitingAddressCity,
+                },
+                deliveryAddress: {
+                    street: data.deliveryAddressStreet || data.billingAddressStreet || data.visitingAddressStreet,
+                    zip: data.deliveryAddressZip || data.billingAddressZip || data.visitingAddressZip,
+                    city: data.deliveryAddressCity || data.billingAddressCity || data.visitingAddressCity,
+                },
                 contactPerson: {
                     firstName: data.firstName,
                     lastName: data.lastName,
+                    email: data.contactEmail,
+                    phone: data.contactPhone,
                 },
-                visitingAddress,
-                billingAddress,
-                shippingAddresses: [deliveryAddress],
-                pricing: {
-                    customerSpecific: false,
-                },
-                active: true,
-                approved: false,
-                registeredAt: serverTimestamp(),
-                comments: data.comments || "",
+                status: 'pending',
+                comments: data.comments || '',
+                acceptedTerms: data.acceptTerms,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
             });
 
-            await setDoc(doc(firestore, "users", userId), {
-                id: userId,
-                email: data.contactEmail,
-                firstName: data.firstName,
-                lastName: data.lastName,
-                role: "customer",
-                companyId: companyRef.id,
-                active: true,
+            await addDoc(collection(firestore, 'notifications'), {
+                type: 'new_signup',
+                title: 'New Company Registration',
+                message: `${data.companyName} has registered and is pending approval.`,
+                companyId: uid,
+                companyName: data.companyName,
+                read: false,
                 createdAt: serverTimestamp(),
             });
 
             toast({
-                title: "Registration successful!",
-                description: "Your application has been submitted and is pending approval. You will be redirected.",
+                title: "Application Submitted",
+                description: "Your application has been submitted for review. You'll be notified once approved.",
             });
 
-            setTimeout(() => {
-                router.push("/");
-            }, 2000);
-
+            router.push('/pending-approval');
         } catch (error: any) {
-            console.error("Signup Error:", error);
-            let description = error.message || "Could not create your account.";
-            if (error.code === 'auth/email-already-in-use') {
-                description = "This email is already registered. Please try logging in instead.";
-            }
+            console.error('Signup error:', error);
             toast({
+                title: "Registration Failed",
+                description: error.message || "Something went wrong during registration.",
                 variant: "destructive",
-                title: "Uh oh! Something went wrong.",
-                description: description,
             });
         }
     };
 
-    if (user) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <p>Redirecting...</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="flex items-center justify-center min-h-screen bg-muted/40 py-12">
-            <Card className="mx-auto max-w-2xl w-full shadow-xl">
-                <CardHeader className="text-center">
+        <div className="container flex h-screen w-screen flex-col items-center justify-center">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-4">
                         <Logo />
                     </div>
-                    <CardTitle className="text-2xl font-headline">Create your B2B Account</CardTitle>
+                    <CardTitle className="text-2xl font-headline">Create a business account</CardTitle>
                     <CardDescription>
-                        Enter your information to register for a wholesale account.
+                        Enter your company details below to apply for an account.
                         Applications are subject to admin approval.
                     </CardDescription>
                 </CardHeader>
@@ -292,21 +279,20 @@ export default function SignupPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Company Type</FormLabel>
-                                            <Select 
-                                                onValueChange={field.onChange} 
-                                                defaultValue={field.value}
-                                            >
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select company type" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="distributor">Distributor</SelectItem>
-                                                    <SelectItem value="bar">Bar</SelectItem>
-                                                    <SelectItem value="hotel">Hotel</SelectItem>
-                                                    <SelectItem value="restaurant">Restaurant</SelectItem>
-                                                    <SelectItem value="other">Other</SelectItem>
+                                                    <SelectItem value="Restaurant">Restaurant</SelectItem>
+                                                    <SelectItem value="Bar">Bar</SelectItem>
+                                                    <SelectItem value="Hotel">Hotel</SelectItem>
+                                                    <SelectItem value="Nightclub">Nightclub</SelectItem>
+                                                    <SelectItem value="Catering">Catering</SelectItem>
+                                                    <SelectItem value="Retail">Retail</SelectItem>
+                                                    <SelectItem value="Other">Other</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -315,12 +301,13 @@ export default function SignupPage() {
                                 />
                             </div>
 
-                            {/* Address Information */}
+                            {/* Addresses */}
                             <div className="space-y-4 rounded-md border p-4">
                                 <h3 className="font-semibold text-lg font-headline">Address Information</h3>
                                 
                                 <div className="space-y-4">
                                     <h4 className="font-medium text-md">Visiting Address</h4>
+                                    
                                     <FormField
                                         control={form.control}
                                         name="visitingAddressStreet"
@@ -453,7 +440,7 @@ export default function SignupPage() {
                                     )}
                                 />
 
-                                {!useBillingAsDelivery && (
+                                {!useBillingAsDelivery && !useVisitingAsBilling && (
                                     <div className="space-y-4 pl-4 border-l">
                                         <h4 className="font-medium text-md">Delivery Address</h4>
                                         <FormField
@@ -596,7 +583,7 @@ export default function SignupPage() {
                                 />
                             </div>
 
-                            {/* Accept Terms */}
+                            {/* Accept Terms - FIXED */}
                             <FormField
                                 control={form.control}
                                 name="acceptTerms"
@@ -610,13 +597,18 @@ export default function SignupPage() {
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
                                             <FormLabel className="font-normal">
-                                                I accept the{" "}
-                                                <Link href="/terms" className="underline">
-                                                    terms and conditions
-                                                </Link>
+                                                I accept the terms and conditions
                                             </FormLabel>
                                             <FormDescription>
-                                                You agree to our Terms of Service and Privacy Policy.
+                                                You agree to our{" "}
+                                                <Link href="/terms" className="underline hover:text-primary">
+                                                    Terms of Service
+                                                </Link>
+                                                {" "}and{" "}
+                                                <Link href="/privacy" className="underline hover:text-primary">
+                                                    Privacy Policy
+                                                </Link>
+                                                .
                                             </FormDescription>
                                             <FormMessage />
                                         </div>
