@@ -74,7 +74,7 @@ const signupSchema = z.object({
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const auth = useAuth();
     const firestore = useFirestore();
     const router = useRouter();
@@ -111,11 +111,12 @@ export default function SignupPage() {
     const useVisitingAsBilling = form.watch("useVisitingAsBilling");
     const useBillingAsDelivery = form.watch("useBillingAsDelivery");
 
+    // This effect handles redirection IF a user is already logged in and lands on the signup page.
     useEffect(() => {
-        if (user) {
-            router.push("/dashboard");
+        if (!isUserLoading && user) {
+            router.push("/dashboard"); 
         }
-    }, [user, router]);
+    }, [user, isUserLoading, router]);
 
     const onSubmit = async (data: SignupFormValues) => {
         if (!auth || !firestore) {
@@ -178,14 +179,15 @@ export default function SignupPage() {
                 pricing: {
                     customerSpecific: false,
                 },
-                active: true,
-                approved: false,
+                active: true, // Company is active but needs approval
+                approved: false, // All new signups require approval
                 registeredAt: serverTimestamp(),
                 comments: data.comments || "",
             });
 
-            // THIS IS THE FIX: Set user role to 'admin' if they don't have a companyId
-            // Otherwise, they are a 'customer'
+            // If a company document was created, this is a customer.
+            // If for some reason it failed, or we change logic later, we can assign admin role.
+            // For now, all signups are customers. We will manually set the first admin.
             const userRole = companyRef.id ? 'customer' : 'admin';
 
             // Create user profile document
@@ -194,8 +196,8 @@ export default function SignupPage() {
                 email: data.contactEmail,
                 firstName: data.firstName,
                 lastName: data.lastName,
-                role: userRole,
-                companyId: companyRef.id || null, // Ensure companyId is present
+                role: userRole, // Set role
+                companyId: companyRef.id || null, // Link to company
                 active: true,
                 approved: userRole === 'admin', // Admins are approved by default
                 createdAt: serverTimestamp(),
@@ -207,7 +209,7 @@ export default function SignupPage() {
                 description: "Your application has been submitted and is pending approval. You will be redirected.",
             });
 
-            // Redirect after a short delay
+            // Redirect to login page after a short delay
             setTimeout(() => {
                 router.push("/");
             }, 2000);
@@ -226,12 +228,21 @@ export default function SignupPage() {
         }
     };
 
-    if (user) {
+    if (isUserLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <p>Redirecting...</p>
+                <p>Loading...</p>
             </div>
         );
+    }
+    
+    // If a user is already logged in, show a loading/redirecting message while the useEffect does its job.
+    if(user) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <p>You are already logged in. Redirecting...</p>
+            </div>
+        )
     }
 
     return (
@@ -447,16 +458,17 @@ export default function SignupPage() {
                                     />
                                 </div>
 
-                                {/* Billing Address Checkbox - FIXED */}
                                 <FormField
                                     control={form.control}
                                     name="useVisitingAsBilling"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                            <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
                                             <div className="space-y-1 leading-none">
                                                 <FormLabel className="font-normal">
                                                     Billing address is the same as visiting address
@@ -516,16 +528,17 @@ export default function SignupPage() {
                                     </div>
                                 )}
 
-                                {/* Delivery Address Checkbox - FIXED */}
                                 <FormField
                                     control={form.control}
                                     name="useBillingAsDelivery"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                            <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
+                                             <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
                                             <div className="space-y-1 leading-none">
                                                 <FormLabel className="font-normal">
                                                     Delivery address is the same as billing address
@@ -626,16 +639,17 @@ export default function SignupPage() {
                                 )}
                             />
 
-                            {/* Terms and Conditions - FIXED */}
                             <FormField
                                 control={form.control}
                                 name="acceptTerms"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                        <Checkbox
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
                                         <div className="space-y-1 leading-none">
                                             <FormLabel className="font-normal">
                                                 I accept the{" "}
@@ -649,8 +663,8 @@ export default function SignupPage() {
                                 )}
                             />
 
-                            <Button type="submit" className="w-full" size="lg">
-                                Create Account
+                            <Button type="submit" className="w-full" size="lg" disabled={form.formState.isSubmitting}>
+                                {form.formState.isSubmitting ? 'Creating Account...' : 'Create Account'}
                             </Button>
 
                             <div className="text-center text-sm">
