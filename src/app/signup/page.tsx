@@ -67,7 +67,7 @@ const signupSchema = z.object({
     }
     if (!data.useBillingAsDelivery && !data.useVisitingAsBilling) {
         if (!data.deliveryAddressStreet) ctx.addIssue({ code: "custom", path: ["deliveryAddressStreet"], message: "Delivery address is required." });
-        if (!data.deliveryAddressZip) ctx.addIssue({ code: "custom", path: ["deliveryAddressZip"], message: "Postal code is required." });
+        if (!data.deliveryAddressZip) ctx.addIssue({ code: "custom", path: ["deliveryAddressZip"], message: "City is required." });
         if (!data.deliveryAddressCity) ctx.addIssue({ code: "custom", path: ["deliveryAddressCity"], message: "City is required." });
     }
 });
@@ -161,7 +161,7 @@ export default function SignupPage() {
             let deliveryAddress;
             if (data.useBillingAsDelivery) {
                 deliveryAddress = billingAddress;
-            } else if (data.useVisitingAsBilling) { // Changed this logic
+            } else if (data.useVisitingAsBilling) { 
                 deliveryAddress = visitingAddress;
             } else {
                 deliveryAddress = {
@@ -658,17 +658,21 @@ export default function SignupPage() {
                                     <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                         <FormControl>
                                             <Checkbox
+                                                id="acceptTerms"
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
                                             />
                                         </FormControl>
-                                        <div className="space-y-1 leading-none">
-                                            <FormLabel className="font-normal">
-                                                I accept the{" "}
-                                                <Link href="/terms" className="underline">
-                                                    terms and conditions
-                                                </Link>
-                                            </FormLabel>
+                                        <div className="grid gap-1.5 leading-none">
+                                            <label
+                                            htmlFor="acceptTerms"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                            I accept the{" "}
+                                            <Link href="/terms" className="underline">
+                                                terms and conditions
+                                            </Link>
+                                            </label>
                                             <FormMessage />
                                         </div>
                                     </FormItem>
