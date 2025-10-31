@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
-import { useAuth, useFirestore, useUser } from "@/firebase";
+import { useAuth, useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -172,9 +172,8 @@ export default function SignupPage() {
                     city: data.deliveryAddressCity || "",
                 };
             }
-
-            // Create company document
-            const companyRef = await addDoc(collection(firestore, "companies"), {
+            
+            const companyData = {
                 name: data.companyName,
                 orgNumber: data.orgNumber,
                 companyType: data.companyType,
@@ -193,10 +192,23 @@ export default function SignupPage() {
                 approved: userRole === 'admin', // Admins are approved by default
                 registeredAt: serverTimestamp(),
                 comments: data.comments || "",
-            });
+            };
 
-            // Create user profile document
-            await setDoc(doc(firestore, "users", userId), {
+            // Create company document (non-blocking with error handling)
+            const companyPromise = addDoc(collection(firestore, "companies"), companyData).catch(serverError => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: 'companies',
+                    operation: 'create',
+                    requestResourceData: companyData
+                }));
+                // Re-throw to be caught by the outer try-catch for toast notification
+                throw serverError;
+            });
+            
+            const companyRef = await companyPromise;
+
+
+            const userData = {
                 id: userId,
                 email: data.contactEmail,
                 firstName: data.firstName,
@@ -206,6 +218,18 @@ export default function SignupPage() {
                 active: true,
                 approved: userRole === 'admin', // Admins are approved by default
                 createdAt: serverTimestamp(),
+            };
+
+            const userDocRef = doc(firestore, "users", userId);
+            // Create user profile document (non-blocking with error handling)
+            setDoc(userDocRef, userData).catch(serverError => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'create',
+                    requestResourceData: userData
+                }));
+                 // Re-throw to be caught by the outer try-catch for toast notification
+                throw serverError;
             });
 
 
@@ -217,16 +241,16 @@ export default function SignupPage() {
             router.push("/");
 
         } catch (error: any) {
-            console.error("Signup Error:", error);
             let description = error.message || "Could not create your account.";
             if (error.code === 'auth/email-already-in-use') {
                 description = "This email is already registered. Please try logging in instead.";
+            } else if (error.name !== 'FirebaseError') { // Don't show generic toast for our custom permission errors
+                 toast({
+                    variant: "destructive",
+                    title: "Uh oh! Something went wrong.",
+                    description: description,
+                });
             }
-            toast({
-                variant: "destructive",
-                title: "Uh oh! Something went wrong.",
-                description: description,
-            });
         }
     };
 
@@ -672,4 +696,5 @@ export default function SignupPage() {
             </Card>
         </div>
     );
-}
+
+    
