@@ -52,10 +52,23 @@ export default function LoginPage() {
         const userDocRef = doc(firestore, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
-        if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
+        if (!userDocSnap.exists()) {
+             toast({
+                variant: 'destructive',
+                title: 'Login Error',
+                description: "User data not found."
+            });
+            auth?.signOut();
+            setAuthChecked(true);
+            return;
+        }
+
+        const userData = userDocSnap.data();
+
+        if (userData.role === 'admin') {
             router.push('/admin');
-        } else if (userDocSnap.exists()) {
-            const companyId = userDocSnap.data().companyId;
+        } else if (userData.role === 'customer') {
+            const companyId = userData.companyId;
             if (!companyId) {
                  toast({
                     variant: 'destructive',
@@ -80,10 +93,11 @@ export default function LoginPage() {
                 setAuthChecked(true); 
             }
         } else {
-             toast({
+            // Handle other roles like 'employee' in the future
+            toast({
                 variant: 'destructive',
                 title: 'Login Error',
-                description: "User data not found."
+                description: "Your user role is not configured for login."
             });
             auth?.signOut();
             setAuthChecked(true);
