@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
 import { useAuth, useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -111,7 +111,8 @@ export default function SignupPage() {
 
     const useVisitingAsBilling = form.watch("useVisitingAsBilling");
     const useBillingAsDelivery = form.watch("useBillingAsDelivery");
-
+    
+    // Redirect if user is already logged in
     useEffect(() => {
         if (!isUserLoading && user) {
             router.push("/dashboard"); 
@@ -171,7 +172,6 @@ export default function SignupPage() {
                 };
             }
             
-            // Set active and approved to false for new registrations
             const companyData = {
                 name: data.companyName,
                 orgNumber: data.orgNumber,
@@ -187,8 +187,8 @@ export default function SignupPage() {
                 billingAddress,
                 shippingAddresses: [deliveryAddress],
                 pricing: {},
-                active: false, // Must be approved by admin first
-                approved: false, // Must be approved by admin first
+                active: false,
+                approved: false,
                 registeredAt: serverTimestamp(),
                 comments: data.comments || "",
             };
@@ -211,7 +211,7 @@ export default function SignupPage() {
                 lastName: data.lastName,
                 role: 'customer',
                 companyId: companyRef.id,
-                active: false, // User account is also inactive until approved
+                active: false,
                 approved: false,
                 createdAt: serverTimestamp(),
             };
@@ -228,7 +228,7 @@ export default function SignupPage() {
 
             toast({
                 title: "Registration successful!",
-                description: "Your application has been submitted and is pending approval. You will be redirected to the login page.",
+                description: "Your application is submitted and pending approval. You will be redirected to the login page.",
             });
 
             router.push("/");
@@ -625,9 +625,6 @@ export default function SignupPage() {
                                                 {...field} 
                                             />
                                         </FormControl>
-                                        <FormDescription>
-                                            Any special needs or information
-                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -643,41 +640,28 @@ export default function SignupPage() {
                                         <FormControl>
                                             <Input type="password" placeholder="••••••••" {...field} />
                                         </FormControl>
-                                        <FormDescription>
-                                            At least 6 characters
-                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
+                            
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                id="acceptTerms"
+                                onCheckedChange={(checked) => form.setValue('acceptTerms', checked as boolean)}
+                                />
+                                <label
+                                htmlFor="acceptTerms"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                I accept the{' '}
+                                <Link href="#" className="underline">
+                                    terms and conditions
+                                </Link>
+                                </label>
+                                {form.formState.errors.acceptTerms && <p className="text-sm font-medium text-destructive">{form.formState.errors.acceptTerms.message}</p>}
+                            </div>
 
-                           <FormField
-                                control={form.control}
-                                name="acceptTerms"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                        <FormControl>
-                                            <Checkbox
-                                                id="acceptTerms"
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                        <div className="grid gap-1.5 leading-none">
-                                            <label
-                                            htmlFor="acceptTerms"
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                            >
-                                            I accept the{" "}
-                                            <Link href="/terms" className="underline">
-                                                terms and conditions
-                                            </Link>
-                                            </label>
-                                            <FormMessage />
-                                        </div>
-                                    </FormItem>
-                                )}
-                            />
 
                             <Button type="submit" className="w-full" size="lg" disabled={form.formState.isSubmitting}>
                                 {form.formState.isSubmitting ? 'Creating Account...' : 'Create Account'}
@@ -696,3 +680,5 @@ export default function SignupPage() {
         </div>
     );
 }
+
+    
