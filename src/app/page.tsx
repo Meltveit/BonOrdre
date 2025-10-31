@@ -37,78 +37,78 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [authChecked, setAuthChecked] = useState(false);
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
   useEffect(() => {
     if (isUserLoading || !firestore) return;
-    
-    const checkUser = async (user: User) => {
-        const userDocRef = doc(firestore, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
 
-        if (!userDocSnap.exists()) {
-             toast({
-                variant: 'destructive',
-                title: 'Login Error',
-                description: "User data not found."
-            });
-            auth?.signOut();
-            setAuthChecked(true);
-            return;
-        }
-
-        const userData = userDocSnap.data();
-
-        if (userData.role === 'admin') {
-            router.push('/admin');
-        } else if (userData.role === 'customer') {
-            const companyId = userData.companyId;
-            if (!companyId) {
-                 toast({
-                    variant: 'destructive',
-                    title: 'Login Error',
-                    description: "Your user is not associated with a company."
-                });
-                auth?.signOut();
-                setAuthChecked(true);
-                return;
-            }
-            const companyDocRef = doc(firestore, "companies", companyId);
-            const companyDocSnap = await getDoc(companyDocRef);
-            if (companyDocSnap.exists() && companyDocSnap.data().approved) {
-                 router.push('/dashboard');
-            } else {
-                toast({
-                    variant: 'destructive',
-                    title: 'Account Not Approved',
-                    description: "Your account is still awaiting admin approval. Please check back later."
-                });
-                auth?.signOut();
-                setAuthChecked(true); 
-            }
-        } else {
-            // Handle other roles like 'employee' in the future
-            toast({
-                variant: 'destructive',
-                title: 'Login Error',
-                description: "Your user role is not configured for login."
-            });
-            auth?.signOut();
-            setAuthChecked(true);
-        }
+    if (!user) {
+      setAuthChecked(true);
+      return;
     }
 
-    if (user) {
-        checkUser(user);
-    } else {
+    const checkUserRoleAndRedirect = async (user: User) => {
+      const userDocRef = doc(firestore, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        toast({
+          variant: 'destructive',
+          title: 'Login Error',
+          description: "User data not found."
+        });
+        auth?.signOut();
         setAuthChecked(true);
-    }
+        return;
+      }
+
+      const userData = userDocSnap.data();
+
+      // PRIMARY FIX: Check for admin role first.
+      if (userData.role === 'admin') {
+        router.push('/admin');
+        return; // Stop execution here for admins
+      }
+
+      // This logic now ONLY runs for non-admins.
+      if (userData.role === 'customer') {
+        const companyId = userData.companyId;
+        if (!companyId) {
+          toast({
+            variant: 'destructive',
+            title: 'Login Error',
+            description: "Your user is not associated with a company."
+          });
+          auth?.signOut();
+          setAuthChecked(true);
+          return;
+        }
+
+        const companyDocRef = doc(firestore, "companies", companyId);
+        const companyDocSnap = await getDoc(companyDocRef);
+
+        if (companyDocSnap.exists() && companyDocSnap.data().approved) {
+          router.push('/dashboard');
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Account Not Approved',
+            description: "Your account is still awaiting admin approval. Please check back later."
+          });
+          auth?.signOut();
+          setAuthChecked(true);
+        }
+      } else {
+        // Handle other roles or lack of role
+        toast({
+          variant: 'destructive',
+          title: 'Login Error',
+          description: "Your user role is not configured for login."
+        });
+        auth?.signOut();
+        setAuthChecked(true);
+      }
+    };
+
+    checkUserRoleAndRedirect(user);
 
   }, [user, isUserLoading, router, firestore, auth, toast]);
 
@@ -155,7 +155,7 @@ export default function LoginPage() {
     }
   };
 
-  if (!authChecked || (isUserLoading && !user)) {
+  if (!authChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Loading...</p>
