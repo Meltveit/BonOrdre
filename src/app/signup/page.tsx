@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, addDoc, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, setDoc, serverTimestamp, getDocs, query, limit } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -129,6 +129,14 @@ export default function SignupPage() {
         }
 
         try {
+            // Check if this is the very first user
+            const usersCollectionRef = collection(firestore, "users");
+            const q = query(usersCollectionRef, limit(1));
+            const existingUsersSnapshot = await getDocs(q);
+            const isFirstUser = existingUsersSnapshot.empty;
+            
+            const userRole = isFirstUser ? 'admin' : 'customer';
+
             // Create Firebase Auth user
             const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
             const userId = userCredential.user.uid;
@@ -179,16 +187,11 @@ export default function SignupPage() {
                 pricing: {
                     customerSpecific: false,
                 },
-                active: true, // Company is active but needs approval
-                approved: false, // All new signups require approval
+                active: userRole === 'admin', // Admins are active by default
+                approved: userRole === 'admin', // Admins are approved by default
                 registeredAt: serverTimestamp(),
                 comments: data.comments || "",
             });
-
-            // If a company document was created, this is a customer.
-            // If for some reason it failed, or we change logic later, we can assign admin role.
-            // For now, all signups are customers. We will manually set the first admin.
-            const userRole = companyRef.id ? 'customer' : 'admin';
 
             // Create user profile document
             await setDoc(doc(firestore, "users", userId), {
@@ -196,8 +199,8 @@ export default function SignupPage() {
                 email: data.contactEmail,
                 firstName: data.firstName,
                 lastName: data.lastName,
-                role: userRole, // Set role
-                companyId: companyRef.id || null, // Link to company
+                role: userRole, // Set role based on check
+                companyId: companyRef.id, // Link to company
                 active: true,
                 approved: userRole === 'admin', // Admins are approved by default
                 createdAt: serverTimestamp(),
@@ -206,7 +209,7 @@ export default function SignupPage() {
 
             toast({
                 title: "Registration successful!",
-                description: "Your application has been submitted and is pending approval. You will be redirected.",
+                description: userRole === 'admin' ? "Admin account created. You will be redirected." : "Your application has been submitted and is pending approval. You will be redirected.",
             });
 
             // Redirect to login page after a short delay
