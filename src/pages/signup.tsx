@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from "next/link";
@@ -26,9 +25,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const signupSchema = z.object({
     companyName: z.string().min(1, { message: "Company name is required." }),
