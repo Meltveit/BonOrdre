@@ -26,9 +26,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 const signupSchema = z.object({
     companyName: z.string().min(1, { message: "Company name is required." }),
     orgNumber: z.string().min(9, { message: "Organization number must be at least 9 digits." }),
