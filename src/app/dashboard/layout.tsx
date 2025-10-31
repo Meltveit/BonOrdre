@@ -53,7 +53,7 @@ export default function DashboardLayout({
     }, [user, isUserLoading, firestore, router]);
 
     // Show a loading state while checking for user and role
-    if (isUserLoading) {
+    if (isUserLoading || (user && firestore && !user.isAnonymous && user.providerData[0]?.providerId !== 'anonymous' && doc(firestore, "users", user.uid) && getDoc(doc(firestore, "users", user.uid)).then(d => d.exists() && d.data()?.role === 'admin'))) {
         return <div className="flex h-screen items-center justify-center"><p>Loading dashboard...</p></div>
     }
 
