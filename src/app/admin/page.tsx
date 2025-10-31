@@ -82,15 +82,30 @@ export default function AdminDashboardPage() {
     }, [allOrders]);
 
 
-     // Generate random sales data for the chart
+     // Process order data for the chart
     useEffect(() => {
+        if (!allOrders) return;
+
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const data = monthNames.map(name => ({
-        name,
-        total: Math.floor(Math.random() * 4000) + 1000,
-        }));
-        setSalesData(data);
-    }, []);
+        
+        // Initialize sales data for all 12 months to 0
+        const monthlySales = monthNames.map(name => ({ name, total: 0 }));
+
+        allOrders.forEach(order => {
+            // Ensure the timeline exists and has at least one entry with a valid date
+            if(order.timeline && order.timeline.length > 0 && order.timeline[0]?.date) {
+                const orderDate = order.timeline[0].date.toDate();
+                const monthIndex = orderDate.getMonth(); // 0 for Jan, 1 for Feb, etc.
+                
+                if (monthlySales[monthIndex]) {
+                    monthlySales[monthIndex].total += order.pricing.total;
+                }
+            }
+        });
+
+        setSalesData(monthlySales);
+
+    }, [allOrders]);
 
   return (
     <div className="grid gap-4 md:gap-8">
