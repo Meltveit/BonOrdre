@@ -26,6 +26,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
+// Force dynamic rendering - prevent static generation
+export const dynamic = 'force-dynamic';
+
 const signupSchema = z.object({
     companyName: z.string().min(1, { message: "Company name is required." }),
     orgNumber: z.string().min(9, { message: "Organization number must be at least 9 digits." }),
@@ -289,7 +292,10 @@ export default function SignupPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Company Type</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                            <Select 
+                                                onValueChange={field.onChange} 
+                                                defaultValue={field.value}
+                                            >
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select company type" />
