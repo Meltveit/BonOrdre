@@ -28,6 +28,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export async function generateStaticParams() {
+  return [];
+}
 
 const signupSchema = z.object({
     companyName: z.string().min(1, { message: "Company name is required." }),
