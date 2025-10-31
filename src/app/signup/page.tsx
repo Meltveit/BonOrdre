@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
-import { useAuth, useFirestore, useUser } from "@/firebase";
+import { useAuth, useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -127,38 +127,7 @@ export default function SignupPage() {
             return;
         }
 
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
-            const userId = userCredential.user.uid;
-
-            const visitingAddress = {
-                street: data.visitingAddressStreet,
-                zip: data.visitingAddressZip,
-                city: data.visitingAddressCity,
-            };
-
-            const billingAddress = data.useVisitingAsBilling 
-                ? visitingAddress 
-                : {
-                    street: data.billingAddressStreet || "",
-                    zip: data.billingAddressZip || "",
-                    city: data.billingAddressCity || "",
-                };
-
-            let deliveryAddress;
-            if (data.useBillingAsDelivery) {
-                deliveryAddress = billingAddress;
-            } else if (data.useVisitingAsBilling) {
-                deliveryAddress = visitingAddress;
-            } else {
-                deliveryAddress = {
-                    street: data.deliveryAddressStreet || "",
-                    zip: data.deliveryAddressZip || "",
-                    city: data.deliveryAddressCity || "",
-                };
-            }
-
-            const companyRef = await addDoc(collection(firestore, "companies"), {
+        const companyData = {
                 name: data.companyName,
                 orgNumber: data.orgNumber,
                 companyType: data.companyType,
@@ -169,19 +138,51 @@ export default function SignupPage() {
                     firstName: data.firstName,
                     lastName: data.lastName,
                 },
-                visitingAddress,
-                billingAddress,
-                shippingAddresses: [deliveryAddress],
-                pricing: {
-                    customerSpecific: false,
+                visitingAddress: {
+                    street: data.visitingAddressStreet,
+                    zip: data.visitingAddressZip,
+                    city: data.visitingAddressCity,
                 },
+                billingAddress: data.useVisitingAsBilling 
+                    ? { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity }
+                    : { street: data.billingAddressStreet || "", zip: data.billingAddressZip || "", city: data.billingAddressCity || "" },
+                shippingAddresses: [
+                    data.useBillingAsDelivery
+                    ? (data.useVisitingAsBilling 
+                        ? { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity }
+                        : { street: data.billingAddressStreet || "", zip: data.billingAddressZip || "", city: data.billingAddressCity || "" })
+                    : { street: data.deliveryAddressStreet || "", zip: data.deliveryAddressZip || "", city: data.deliveryAddressCity || "" }
+                ],
+                pricing: {},
                 active: true,
                 approved: false,
                 registeredAt: serverTimestamp(),
                 comments: data.comments || "",
-            });
+            };
 
-            await setDoc(doc(firestore, "users", userId), {
+        let userCredential;
+        try {
+            userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
+        } catch (error: any) {
+             console.error("Auth Error:", error);
+            let description = error.message || "Could not create your user.";
+            if (error.code === 'auth/email-already-in-use') {
+                description = "This email is already registered. Please try logging in instead.";
+            }
+            toast({
+                variant: "destructive",
+                title: "Uh oh! Something went wrong.",
+                description: description,
+            });
+            return; // Stop execution
+        }
+
+        const userId = userCredential.user.uid;
+
+        try {
+            const companyRef = await addDoc(collection(firestore, "companies"), companyData);
+            
+            const userData = {
                 id: userId,
                 email: data.contactEmail,
                 firstName: data.firstName,
@@ -190,6 +191,16 @@ export default function SignupPage() {
                 companyId: companyRef.id,
                 active: true,
                 createdAt: serverTimestamp(),
+            };
+            
+            const userDocRef = doc(firestore, "users", userId);
+            setDoc(userDocRef, userData).catch(serverError => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'create',
+                    requestResourceData: userData
+                }));
+                throw serverError;
             });
 
             toast({
@@ -202,16 +213,15 @@ export default function SignupPage() {
             }, 2000);
 
         } catch (error: any) {
-            console.error("Signup Error:", error);
-            let description = error.message || "Could not create your account.";
-            if (error.code === 'auth/email-already-in-use') {
-                description = "This email is already registered. Please try logging in instead.";
+            console.error("Firestore Error:", error);
+            const description = error.message || "Could not save your registration data.";
+            if (error.name !== 'FirebaseError' || !error.message.includes('Firestore Security Rules')) {
+                toast({
+                    variant: "destructive",
+                    title: "Uh oh! Something went wrong.",
+                    description: description,
+                });
             }
-            toast({
-                variant: "destructive",
-                title: "Uh oh! Something went wrong.",
-                description: description,
-            });
         }
     };
 
@@ -438,10 +448,12 @@ export default function SignupPage() {
                                     name="useVisitingAsBilling"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                            <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
                                             <div className="space-y-1 leading-none">
                                                 <FormLabel className="font-normal">
                                                     Billing address is the same as visiting address
@@ -506,10 +518,12 @@ export default function SignupPage() {
                                     name="useBillingAsDelivery"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                            <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
                                             <div className="space-y-1 leading-none">
                                                 <FormLabel className="font-normal">
                                                     Delivery address is the same as billing address
@@ -608,15 +622,17 @@ export default function SignupPage() {
                                 )}
                             />
 
-                            <FormField
+                           <FormField
                                 control={form.control}
                                 name="acceptTerms"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                        <Checkbox
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
                                         <div className="space-y-1 leading-none">
                                             <FormLabel className="font-normal">
                                                 I accept the{" "}
@@ -647,3 +663,4 @@ export default function SignupPage() {
         </div>
     );
 }
+    
