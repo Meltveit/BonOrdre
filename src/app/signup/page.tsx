@@ -163,7 +163,14 @@ export default function SignupPage() {
                 permissions: {}
             };
             const userDocRef = doc(firestore, "users", newUser.uid);
-            await setDoc(userDocRef, userData)
+            await setDoc(userDocRef, userData).catch(serverError => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'create',
+                    requestResourceData: userData
+                }));
+                throw serverError; // Re-throw to be caught by the outer try-catch
+            });
 
 
             toast({
@@ -183,11 +190,14 @@ export default function SignupPage() {
             if (error.code === 'auth/email-already-in-use') {
                 description = "This email is already registered. Please try logging in instead."
             }
-            toast({
-                variant: "destructive",
-                title: "Uh oh! Something went wrong.",
-                description: description,
-            });
+             // Avoid double-toasting for permission errors we handle globally
+            if (error.name !== 'FirebaseError' || !error.message.includes('Firestore Security Rules')) {
+                toast({
+                    variant: "destructive",
+                    title: "Uh oh! Something went wrong.",
+                    description: description,
+                });
+            }
         }
     };
 
@@ -299,11 +309,12 @@ export default function SignupPage() {
                         control={form.control}
                         name="acceptTerms"
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                 <FormControl>
                                     <Checkbox
                                         checked={field.value}
                                         onCheckedChange={field.onChange}
+                                        id="acceptTerms"
                                     />
                                 </FormControl>
                                 <div className="space-y-1 leading-none">
@@ -316,11 +327,11 @@ export default function SignupPage() {
                                     <p className="text-sm text-muted-foreground">
                                         You agree to our <Link href="#" className="underline">Terms of Service</Link> and <Link href="#" className="underline">Privacy Policy</Link>.
                                     </p>
+                                    <FormMessage />
                                 </div>
                             </FormItem>
                         )}
                     />
-                    <FormMessage>{form.formState.errors.acceptTerms?.message}</FormMessage>
 
                     <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
                         {form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}
