@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, addDoc, doc, setDoc, serverTimestamp, getDocs, query, limit } from "firebase/firestore";
+import { collection, addDoc, doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -133,14 +133,6 @@ export default function SignupPage() {
         });
 
         try {
-            // Check if this is the very first user
-            const usersCollectionRef = collection(firestore, "users");
-            const q = query(usersCollectionRef, limit(1));
-            const existingUsersSnapshot = await getDocs(q);
-            const isFirstUser = existingUsersSnapshot.empty;
-            
-            const userRole = isFirstUser ? 'admin' : 'customer';
-
             // Create Firebase Auth user
             const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
             const userId = userCredential.user.uid;
@@ -188,64 +180,60 @@ export default function SignupPage() {
                 billingAddress,
                 shippingAddresses: [deliveryAddress],
                 pricing: {},
-                active: userRole === 'admin', // Admins are active by default
-                approved: userRole === 'admin', // Admins are approved by default
+                active: false,
+                approved: false,
                 registeredAt: serverTimestamp(),
                 comments: data.comments || "",
             };
 
-            // Create company document (non-blocking with error handling)
             const companyPromise = addDoc(collection(firestore, "companies"), companyData).catch(serverError => {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: 'companies',
                     operation: 'create',
                     requestResourceData: companyData
                 }));
-                // Re-throw to be caught by the outer try-catch for toast notification
                 throw serverError;
             });
             
             const companyRef = await companyPromise;
-
 
             const userData = {
                 id: userId,
                 email: data.contactEmail,
                 firstName: data.firstName,
                 lastName: data.lastName,
-                role: userRole, // Set role based on check
-                companyId: companyRef.id, // Link to company
+                role: 'customer',
+                companyId: companyRef.id,
                 active: true,
-                approved: userRole === 'admin', // Admins are approved by default
+                approved: false,
                 createdAt: serverTimestamp(),
             };
 
             const userDocRef = doc(firestore, "users", userId);
-            // Create user profile document (non-blocking with error handling)
             setDoc(userDocRef, userData).catch(serverError => {
                  errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: userDocRef.path,
                     operation: 'create',
                     requestResourceData: userData
                 }));
-                 // Re-throw to be caught by the outer try-catch for toast notification
                 throw serverError;
             });
 
-
             toast({
                 title: "Registration successful!",
-                description: userRole === 'admin' ? "Admin account created. You will be redirected." : "Your application has been submitted and is pending approval. You will be redirected.",
+                description: "Your application has been submitted and is pending approval. You will be redirected.",
             });
 
             router.push("/");
 
         } catch (error: any) {
-            let description = error.message || "Could not create your account.";
+             let description = error.message || "Could not create your account.";
             if (error.code === 'auth/email-already-in-use') {
                 description = "This email is already registered. Please try logging in instead.";
-            } else if (error.name !== 'FirebaseError') { // Don't show generic toast for our custom permission errors
-                 toast({
+            }
+            // Only show toast if it's not a permission error we are handling globally
+            if (error.name !== 'FirebaseError' || !error.message.includes('Firestore Security Rules')) {
+                toast({
                     variant: "destructive",
                     title: "Uh oh! Something went wrong.",
                     description: description,
@@ -696,5 +684,4 @@ export default function SignupPage() {
             </Card>
         </div>
     );
-
-    
+}
