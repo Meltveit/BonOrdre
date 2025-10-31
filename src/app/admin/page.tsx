@@ -4,7 +4,6 @@ import {
   Activity,
   ArrowUpRight,
   CreditCard,
-  DollarSign,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -113,12 +112,12 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">NOK</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{totalRevenue.toFixed(2)} kr</div>
             <p className="text-xs text-muted-foreground">
-              Based on all orders
+              Basert på alle ordrer
             </p>
           </CardContent>
         </Card>
@@ -130,7 +129,7 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">+{newCustomersThisMonth}</div>
             <p className="text-xs text-muted-foreground">
-              In the last 30 days
+              Siste 30 dager
             </p>
           </CardContent>
         </Card>
@@ -142,7 +141,7 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">+{totalSales}</div>
             <p className="text-xs text-muted-foreground">
-              Total number of orders placed
+              Totalt antall bestillinger
             </p>
           </CardContent>
         </Card>
@@ -154,7 +153,7 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">+{pendingOrdersCount}</div>
             <p className="text-xs text-muted-foreground">
-              Total pending orders
+              Totalt antall ubehandlede bestillinger
             </p>
           </CardContent>
         </Card>
@@ -179,7 +178,7 @@ export default function AdminDashboardPage() {
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
+                  tickFormatter={(value) => `${value} kr`}
                 />
                 <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -191,7 +190,7 @@ export default function AdminDashboardPage() {
             <div className="grid gap-2">
               <CardTitle>Recent Orders</CardTitle>
               <CardDescription>
-                Your 5 most recent orders.
+                Dine 5 siste bestillinger.
               </CardDescription>
             </div>
             <Button asChild size="sm" className="ml-auto gap-1">
@@ -219,7 +218,7 @@ export default function AdminDashboardPage() {
                                 {order.orderNumber}
                             </div>
                         </TableCell>
-                        <TableCell className="text-right">${order.pricing.total.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{order.pricing.total.toFixed(2)} kr</TableCell>
                     </TableRow>
                 ))}
                  {!isLoadingOrders && recentOrders?.length === 0 && <TableRow><TableCell colSpan={2}>No recent orders.</TableCell></TableRow>}

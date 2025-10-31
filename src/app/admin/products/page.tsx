@@ -141,7 +141,7 @@ export default function AdminProductsPage() {
                         <TableCell>
                         <Badge variant="outline">{product.metadata?.status || 'Active'}</Badge>
                         </TableCell>
-                        <TableCell>${product.pricing?.basePrice?.toFixed(2) || 'N/A'}</TableCell>
+                        <TableCell>{product.pricing?.basePrice?.toFixed(2) || 'N/A'} kr</TableCell>
                         <TableCell className="hidden md:table-cell">{product.stock?.quantity ?? 'N/A'}</TableCell>
                         <TableCell>
                         <DropdownMenu>

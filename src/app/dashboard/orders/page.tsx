@@ -74,7 +74,7 @@ export default function OrdersPage() {
                 <TableCell className="hidden md:table-cell">
                   {order.timeline[0]?.date.toDate().toLocaleDateString()}
                 </TableCell>
-                <TableCell className="text-right">${order.pricing.total.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{order.pricing.total.toFixed(2)} kr</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

@@ -102,11 +102,11 @@ export default function AdminReportsPage() {
                 </CardHeader>
                 <CardContent>
                     <ul className="space-y-2 text-sm">
-                        <li className="flex justify-between"><span>The Grand Hotel</span> <strong>$12,450</strong></li>
-                        <li className="flex justify-between"><span>Williams Fine Dining</span> <strong>$9,820</strong></li>
-                        <li className="flex justify-between"><span>City Bistro</span> <strong>$7,300</strong></li>
-                        <li className="flex justify-between"><span>The Corner Pub</span> <strong>$5,150</strong></li>
-                        <li className="flex justify-between"><span>Seaside Resorts</span> <strong>$4,800</strong></li>
+                        <li className="flex justify-between"><span>The Grand Hotel</span> <strong>12,450 kr</strong></li>
+                        <li className="flex justify-between"><span>Williams Fine Dining</span> <strong>9,820 kr</strong></li>
+                        <li className="flex justify-between"><span>City Bistro</span> <strong>7,300 kr</strong></li>
+                        <li className="flex justify-between"><span>The Corner Pub</span> <strong>5,150 kr</strong></li>
+                        <li className="flex justify-between"><span>Seaside Resorts</span> <strong>4,800 kr</strong></li>
                     </ul>
                 </CardContent>
             </Card>

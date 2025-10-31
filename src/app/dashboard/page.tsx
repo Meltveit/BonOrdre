@@ -92,7 +92,7 @@ export default function DashboardPage() {
                     <CardContent className="p-4 grid gap-2">
                         <CardTitle className="font-headline text-lg">{product.name}</CardTitle>
                         <CardDescription className="text-sm">{product.category}</CardDescription>
-                        <p className="font-semibold text-base">${product.pricing?.basePrice?.toFixed(2) || 'N/A'}</p>
+                        <p className="font-semibold text-base">{product.pricing?.basePrice?.toFixed(2) || 'N/A'} kr</p>
                     </CardContent>
                     <CardFooter className="p-4 pt-0">
                         <Button className="w-full">Add to Cart</Button>

@@ -100,7 +100,7 @@ export default function AdminOrdersPage() {
                       <Badge variant={getBadgeVariant(order.status)}>{order.status}</Badge>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{order.timeline[0]?.date.toDate().toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">${order.pricing.total.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{order.pricing.total.toFixed(2)} kr</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
