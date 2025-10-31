@@ -7,8 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, addDoc, doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
-
+import { doc, setDoc, serverTimestamp, getDoc, collection, addDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,16 +20,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
 import { useAuth, useFirestore, useUser } from "@/firebase";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
+export const dynamic = 'force-dynamic';
 
 const signupSchema = z.object({
     companyName: z.string().min(1, { message: "Company name is required." }),
-    orgNumber: z.string().min(1, { message: "Organization number is required." }),
+    orgNumber: z.string().min(9, { message: "Organization number must be at least 9 digits." }),
     companyType: z.string().min(1, { message: "Company type is required." }),
     
     contactEmail: z.string().email({ message: "Invalid business email address." }),
@@ -63,16 +63,14 @@ const signupSchema = z.object({
         if (!data.billingAddressZip) ctx.addIssue({ code: "custom", path: ["billingAddressZip"], message: "Postal code is required." });
         if (!data.billingAddressCity) ctx.addIssue({ code: "custom", path: ["billingAddressCity"], message: "City is required." });
     }
-    if (!data.useBillingAsDelivery) {
+    if (!data.useBillingAsDelivery && !data.useVisitingAsBilling) { 
         if (!data.deliveryAddressStreet) ctx.addIssue({ code: "custom", path: ["deliveryAddressStreet"], message: "Delivery address is required." });
         if (!data.deliveryAddressZip) ctx.addIssue({ code: "custom", path: ["deliveryAddressZip"], message: "Postal code is required." });
         if (!data.deliveryAddressCity) ctx.addIssue({ code: "custom", path: ["deliveryAddressCity"], message: "City is required." });
     }
 });
 
-
 type SignupFormData = z.infer<typeof signupSchema>;
-
 
 export default function SignupPage() {
     const auth = useAuth();
@@ -84,249 +82,282 @@ export default function SignupPage() {
     const form = useForm<SignupFormData>({
         resolver: zodResolver(signupSchema),
         defaultValues: {
-            useVisitingAsBilling: true,
-            useBillingAsDelivery: true,
+            companyName: "",
+            orgNumber: "",
+            companyType: "",
+            contactEmail: "",
+            contactPhone: "",
+            firstName: "",
+            lastName: "",
+            visitingAddressStreet: "",
+            visitingAddressZip: "",
+            visitingAddressCity: "",
+            useVisitingAsBilling: false,
+            billingAddressStreet: "",
+            billingAddressZip: "",
+            billingAddressCity: "",
+            useBillingAsDelivery: false,
+            deliveryAddressStreet: "",
+            deliveryAddressZip: "",
+            deliveryAddressCity: "",
+            comments: "",
+            password: "",
             acceptTerms: false,
         },
     });
 
-    const useVisitingAsBilling = form.watch('useVisitingAsBilling');
-    const useBillingAsDelivery = form.watch('useBillingAsDelivery');
-
+    const useVisitingAsBilling = form.watch("useVisitingAsBilling");
+    const useBillingAsDelivery = form.watch("useBillingAsDelivery");
 
     useEffect(() => {
-        if (isUserLoading || !firestore) return;
-        if (user) {
-            const userDocRef = doc(firestore, "users", user.uid);
-            getDoc(userDocRef).then(docSnap => {
-                if (docSnap.exists() && docSnap.data().role === 'admin') {
-                    router.push('/admin');
-                } else {
-                    router.push('/dashboard');
-                }
-            });
+        if (useVisitingAsBilling) {
+            const visitingStreet = form.getValues("visitingAddressStreet");
+            const visitingZip = form.getValues("visitingAddressZip");
+            const visitingCity = form.getValues("visitingAddressCity");
+            form.setValue("billingAddressStreet", visitingStreet);
+            form.setValue("billingAddressZip", visitingZip);
+            form.setValue("billingAddressCity", visitingCity);
         }
-    }, [user, isUserLoading, router, firestore]);
+    }, [useVisitingAsBilling, form]);
+
+    useEffect(() => {
+        if (useBillingAsDelivery) {
+            const billingStreet = form.getValues("billingAddressStreet");
+            const billingZip = form.getValues("billingAddressZip");
+            const billingCity = form.getValues("billingAddressCity");
+            form.setValue("deliveryAddressStreet", billingStreet);
+            form.setValue("deliveryAddressZip", billingZip);
+            form.setValue("deliveryAddressCity", billingCity);
+        }
+    }, [useBillingAsDelivery, form]);
+
+    useEffect(() => {
+        if (!isUserLoading && user) {
+            router.push("/dashboard");
+        }
+    }, [user, isUserLoading, router]);
 
     const onSubmit: SubmitHandler<SignupFormData> = async (data) => {
         if (!auth || !firestore) {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "Firebase is not initialized.",
-            });
+            toast({ title: "Error", description: "Firebase services not available.", variant: "destructive" });
             return;
         }
 
-        toast({
-            title: "Creating your account...",
-            description: "Please wait.",
-        });
-
         try {
-            // 1. Create user in Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
-            const newUser = userCredential.user;
+            const uid = userCredential.user.uid;
 
-            const billingAddress = data.useVisitingAsBilling 
-                ? { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity, country: "Norway" }
-                : { street: data.billingAddressStreet, zip: data.billingAddressZip, city: data.billingAddressCity, country: "Norway" };
-
-            const deliveryAddress = data.useBillingAsDelivery ? billingAddress : { street: data.deliveryAddressStreet, zip: data.deliveryAddressZip, city: data.deliveryAddressCity, country: "Norway" };
-
-            // 2. Create a new company document in Firestore
-            const companyRef = await addDoc(collection(firestore, "companies"), {
+            const companyRef = await addDoc(collection(firestore, 'companies'), {
                 name: data.companyName,
                 orgNumber: data.orgNumber,
-                companyType: data.companyType,
+                companyType: data.companyType, 
+                visitingAddress: { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity },
+                billingAddress: data.useVisitingAsBilling ? 
+                    { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity } :
+                    { street: data.billingAddressStreet, zip: data.billingAddressZip, city: data.billingAddressCity },
+                shippingAddresses: [ data.useBillingAsDelivery ?
+                    (data.useVisitingAsBilling ? 
+                        { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity } : 
+                        { street: data.billingAddressStreet, zip: data.billingAddressZip, city: data.billingAddressCity }
+                    ) :
+                    { street: data.deliveryAddressStreet, zip: data.deliveryAddressZip, city: data.deliveryAddressCity }
+                ],
+                contactPerson: { firstName: data.firstName, lastName: data.lastName },
                 contactEmail: data.contactEmail,
                 contactPhone: data.contactPhone,
-                contactPerson: {
-                    firstName: data.firstName,
-                    lastName: data.lastName,
-                },
-                visitingAddress: {
-                    street: data.visitingAddressStreet,
-                    zip: data.visitingAddressZip,
-                    city: data.visitingAddressCity,
-                    country: "Norway"
-                },
-                billingAddress: billingAddress,
-                shippingAddresses: [deliveryAddress],
-                pricing: {},
                 active: false,
                 approved: false,
                 registeredAt: serverTimestamp(),
                 approvedAt: null,
                 approvedBy: null,
-                adminNotes: data.comments || ""
+                adminNotes: data.comments || "",
+                pricing: {},
             });
 
-            // 3. Create a new user document in Firestore linked to the company
-            await setDoc(doc(firestore, "users", newUser.uid), {
-                role: "customer",
-                companyId: companyRef.id,
+            await setDoc(doc(firestore, 'users', uid), {
+                id: uid,
                 email: data.contactEmail,
+                role: 'customer',
+                companyId: companyRef.id, 
                 firstName: data.firstName,
                 lastName: data.lastName,
                 phone: data.contactPhone,
                 approved: false,
-                active: true,
+                active: false, 
                 createdAt: serverTimestamp(),
                 lastLogin: serverTimestamp(),
                 notificationSettings: {},
-                permissions: {}
+                permissions: {},
+            });
+
+            await addDoc(collection(firestore, 'notifications'), {
+                type: 'new_signup',
+                title: 'New Company Registration',
+                message: `${data.companyName} has registered and is pending approval.`,
+                companyId: companyRef.id,
+                companyName: data.companyName,
+                read: false,
+                createdAt: serverTimestamp(),
             });
 
             toast({
-                title: "Account Created!",
-                description: "Your application has been submitted and is pending approval. You will be redirected.",
+                title: "Application Submitted",
+                description: "Your application is pending review. You will be redirected.",
             });
 
-            // The useEffect will handle the redirect.
-
+            router.push('/');
         } catch (error: any) {
-            console.error("Signup Error:", error);
-            let description = error.message || "Could not create your account.";
-            if (error.code === 'auth/email-already-in-use') {
-                description = "This email is already registered. Please try logging in instead."
-            }
+            console.error('Signup error:', error);
             toast({
+                title: "Registration Failed",
+                description: error.message || "Something went wrong during registration.",
                 variant: "destructive",
-                title: "Uh oh! Something went wrong.",
-                description: description,
             });
         }
     };
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/40 py-12">
-      <Card className="mx-auto max-w-2xl w-full shadow-xl">
-        <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <Logo />
-            </div>
-          <CardTitle className="text-2xl font-headline">Create your B2B Account</CardTitle>
-          <CardDescription>
-            Enter your information to register for a wholesale account.
-            Applications are subject to admin approval.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    
-                    <div className="space-y-4 rounded-md border p-4">
-                        <h3 className="font-semibold text-lg font-headline">Company Information</h3>
-                        <FormField control={form.control} name="companyName" render={({ field }) => ( <FormItem> <FormLabel>Company Name</FormLabel> <FormControl> <Input placeholder="The Grand Hotel" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="orgNumber" render={({ field }) => ( <FormItem> <FormLabel>Organization Number</FormLabel> <FormControl> <Input placeholder="987654321" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
+    return (
+        <div className="container flex h-screen w-screen flex-col items-center justify-center">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="space-y-1 text-center">
+                    <div className="flex justify-center mb-4"><Logo /></div>
+                    <CardTitle className="text-2xl font-headline">Create a business account</CardTitle>
+                    <CardDescription>Enter your company details to apply for an account. Applications are subject to admin approval.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h3 className="font-semibold text-lg font-headline">Company Information</h3>
+                                <FormField control={form.control} name="companyName" render={({ field }) => (<FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="ABC Trading AS" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="orgNumber" render={({ field }) => (<FormItem><FormLabel>Organization Number</FormLabel><FormControl><Input placeholder="123456789" {...field} /></FormControl><FormDescription>Norwegian organization number (9 digits)</FormDescription><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="companyType" render={({ field }) => (<FormItem><FormLabel>Company Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select company type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Restaurant">Restaurant</SelectItem><SelectItem value="Bar">Bar</SelectItem><SelectItem value="Hotel">Hotel</SelectItem><SelectItem value="Nightclub">Nightclub</SelectItem><SelectItem value="Catering">Catering</SelectItem><SelectItem value="Retail">Retail</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                            </div>
+
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h3 className="font-semibold text-lg font-headline">Address Information</h3>
+                                <div className="space-y-4">
+                                    <h4 className="font-medium text-md">Visiting Address</h4>
+                                    <FormField control={form.control} name="visitingAddressStreet" render={({ field }) => (<FormItem><FormLabel>Street Address</FormLabel><FormControl><Input placeholder="Storgata 15" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField control={form.control} name="visitingAddressZip" render={({ field }) => (<FormItem><FormLabel>Postal Code</FormLabel><FormControl><Input placeholder="0184" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="visitingAddressCity" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Oslo" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    </div>
+                                </div>
+                                
+                                <FormField
+                                    control={form.control}
+                                    name="useVisitingAsBilling"
+                                    render={({ field }) => (
+                                        <div className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel>
+                                                    Billing address is the same as visiting address
+                                                </FormLabel>
+                                            </div>
+                                        </div>
+                                    )}
+                                />
+
+                                {!useVisitingAsBilling && (
+                                    <div className="space-y-4 pl-4 border-l">
+                                        <h4 className="font-medium text-md">Billing Address</h4>
+                                        <FormField control={form.control} name="billingAddressStreet" render={({ field }) => (<FormItem><FormLabel>Street Address</FormLabel><FormControl><Input placeholder="Billing Street 1" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="billingAddressZip" render={({ field }) => (<FormItem><FormLabel>Postal Code</FormLabel><FormControl><Input placeholder="0185" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="billingAddressCity" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Oslo" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <FormField
+                                    control={form.control}
+                                    name="useBillingAsDelivery"
+                                    render={({ field }) => (
+                                        <div className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                                            <FormControl>
+                                                <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel>
+                                                    Delivery address is the same as billing address
+                                                </FormLabel>
+                                            </div>
+                                        </div>
+                                    )}
+                                />
+
+                                {!useBillingAsDelivery && !useVisitingAsBilling && (
+                                    <div className="space-y-4 pl-4 border-l">
+                                        <h4 className="font-medium text-md">Delivery Address</h4>
+                                        <FormField control={form.control} name="deliveryAddressStreet" render={({ field }) => (<FormItem><FormLabel>Street Address</FormLabel><FormControl><Input placeholder="Delivery Street 1" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="deliveryAddressZip" render={({ field }) => (<FormItem><FormLabel>Postal Code</FormLabel><FormControl><Input placeholder="0186" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="deliveryAddressCity" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Oslo" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h3 className="font-semibold text-lg font-headline">Contact Person</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField control={form.control} name="firstName" render={({ field }) => (<FormItem><FormLabel>First name</FormLabel><FormControl><Input placeholder="Max" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="lastName" render={({ field }) => (<FormItem><FormLabel>Last name</FormLabel><FormControl><Input placeholder="Robinson" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField control={form.control} name="contactEmail" render={({ field }) => (<FormItem><FormLabel>Contact Email (for login)</FormLabel><FormControl><Input type="email" placeholder="m@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="contactPhone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="+47 123 45 678" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                </div>
+                                <FormField control={form.control} name="password" render={({ field }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormDescription>At least 6 characters</FormDescription><FormMessage /></FormItem>)} />
+                            </div>
+
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h3 className="font-semibold text-lg font-headline">Additional Information</h3>
+                                <FormField control={form.control} name="comments" render={({ field }) => (<FormItem><FormLabel>Comments (Optional)</FormLabel><FormControl><Textarea placeholder="Any extra information for the admin team..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                            
                             <FormField
                                 control={form.control}
-                                name="companyType"
+                                name="acceptTerms"
                                 render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Company Type</FormLabel>
+                                    <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                         <FormControl>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="horeca">Horeca</SelectItem>
-                                                    <SelectItem value="distributor">Distributor</SelectItem>
-                                                    <SelectItem value="other">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                                id="terms"
+                                            />
                                         </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                                        <div className="space-y-1 leading-none">
+                                            <Label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                            I accept the terms and conditions
+                                            </Label>
+                                            <FormDescription>
+                                            You agree to our <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </div>
+                                    </div>
                                 )}
                             />
-                        </div>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="visitingAddressStreet" render={({ field }) => ( <FormItem> <FormLabel>Visiting Address</FormLabel> <FormControl> <Input placeholder="Storgata 15" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                            <FormField control={form.control} name="visitingAddressZip" render={({ field }) => ( <FormItem> <FormLabel>Postal Code</FormLabel> <FormControl> <Input placeholder="0184" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                        </div>
-                        <FormField control={form.control} name="visitingAddressCity" render={({ field }) => ( <FormItem> <FormLabel>City</FormLabel> <FormControl> <Input placeholder="Oslo" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
 
-                        <FormField control={form.control} name="useVisitingAsBilling" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                <FormLabel className="font-normal">Billing address is the same as visiting address</FormLabel>
-                            </FormItem>
-                        )} />
 
-                        {!useVisitingAsBilling && (
-                             <div className="space-y-4 pl-4 border-l">
-                                <h4 className="font-medium text-md">Billing Address</h4>
-                                <FormField control={form.control} name="billingAddressStreet" render={({ field }) => ( <FormItem> <FormLabel>Street Address</FormLabel> <FormControl> <Input placeholder="Billing Street 1" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                                <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="billingAddressZip" render={({ field }) => ( <FormItem> <FormLabel>Postal Code</FormLabel> <FormControl> <Input placeholder="0185" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                                <FormField control={form.control} name="billingAddressCity" render={({ field }) => ( <FormItem> <FormLabel>City</FormLabel> <FormControl> <Input placeholder="Oslo" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                                </div>
-                            </div>
-                        )}
-
-                        <FormField control={form.control} name="useBillingAsDelivery" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                <FormLabel className="font-normal">Delivery address is the same as billing address</FormLabel>
-                            </FormItem>
-                        )} />
-
-                        {!useBillingAsDelivery && (
-                             <div className="space-y-4 pl-4 border-l">
-                                <h4 className="font-medium text-md">Delivery Address</h4>
-                                <FormField control={form.control} name="deliveryAddressStreet" render={({ field }) => ( <FormItem> <FormLabel>Street Address</FormLabel> <FormControl> <Input placeholder="Delivery Street 1" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                                <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="deliveryAddressZip" render={({ field }) => ( <FormItem> <FormLabel>Postal Code</FormLabel> <FormControl> <Input placeholder="0186" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                                <FormField control={form.control} name="deliveryAddressCity" render={({ field }) => ( <FormItem> <FormLabel>City</FormLabel> <FormControl> <Input placeholder="Oslo" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="space-y-4 rounded-md border p-4">
-                        <h3 className="font-semibold text-lg font-headline">Contact Person</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="firstName" render={({ field }) => ( <FormItem> <FormLabel>First name</FormLabel> <FormControl> <Input placeholder="Max" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                            <FormField control={form.control} name="lastName" render={({ field }) => ( <FormItem> <FormLabel>Last name</FormLabel> <FormControl> <Input placeholder="Robinson" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <FormField control={form.control} name="contactEmail" render={({ field }) => ( <FormItem> <FormLabel>Contact Email (for login)</FormLabel> <FormControl> <Input type="email" placeholder="m@example.com" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                             <FormField control={form.control} name="contactPhone" render={({ field }) => ( <FormItem> <FormLabel>Phone</FormLabel> <FormControl> <Input placeholder="+47 123 45 678" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                        </div>
-                        <FormField control={form.control} name="password" render={({ field }) => ( <FormItem> <FormLabel>Password</FormLabel> <FormControl> <Input type="password" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                    </div>
-
-                     <div className="space-y-4 rounded-md border p-4">
-                        <h3 className="font-semibold text-lg font-headline">Additional Information</h3>
-                        <FormField control={form.control} name="comments" render={({ field }) => ( <FormItem> <FormLabel>Comments</FormLabel> <FormControl> <Textarea placeholder="Any extra information for the admin team..." {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                     </div>
-
-                    <FormField control={form.control} name="acceptTerms" render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                             <div className="space-y-1 leading-none">
-                                <FormLabel>Accept terms and conditions</FormLabel>
-                                <FormDescription>You agree to our Terms of Service and Privacy Policy.</FormDescription>
-                                <FormMessage/>
-                            </div>
-                        </FormItem>
-                    )} />
-
-                    <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}
-                    </Button>
-                </form>
-          </Form>
-          <div className="mt-4 text-center text-sm">
-            Already have an account?{" "}
-            <Link href="/" className="underline">
-              Sign in
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+                            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}</Button>
+                        </form>
+                    </Form>
+                    <div className="mt-4 text-center text-sm">Already have an account? <Link href="/" className="underline">Sign in</Link></div>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }
