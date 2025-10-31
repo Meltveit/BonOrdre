@@ -15,11 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useAuth, useUser, useFirestore } from "@/firebase";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import type { Company } from "@/lib/definitions";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
+
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -35,8 +36,7 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
-  const [authChecked, setAuthChecked] = useState(false);
-
+  
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -46,61 +46,58 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (isUserLoading || !firestore) return;
-
-    const checkUserRoleAndRedirect = async (currentUser: User) => {
-      try {
-        const userDocRef = doc(firestore, "users", currentUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (!userDocSnap.exists()) {
-          toast({ variant: 'destructive', title: 'Login Error', description: "User data not found." });
-          await auth?.signOut();
-          setAuthChecked(true);
-          return;
-        }
-
-        const userData = userDocSnap.data();
-
-        if (userData.role === 'admin') {
-          router.push('/admin');
-        } else if (userData.role === 'customer') {
-          const companyId = userData.companyId;
-          if (!companyId) {
-            toast({ variant: 'destructive', title: 'Login Error', description: "Your user is not associated with a company." });
-            await auth?.signOut();
-            setAuthChecked(true);
-            return;
-          }
-
-          const companyDocRef = doc(firestore, "companies", companyId);
-          const companyDocSnap = await getDoc(companyDocRef);
-
-          if (companyDocSnap.exists() && companyDocSnap.data().approved) {
-            router.push('/dashboard');
-          } else {
-            toast({ variant: 'destructive', title: 'Account Not Approved', description: "Your account is awaiting admin approval. Please check back later." });
-            await auth?.signOut();
-            setAuthChecked(true);
-          }
-        } else {
-          toast({ variant: 'destructive', title: 'Login Error', description: "Your user role is not configured for login." });
-          await auth?.signOut();
-          setAuthChecked(true);
-        }
-      } catch (error) {
-        console.error("Error during role check:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not verify user role.' });
-        await auth?.signOut();
-        setAuthChecked(true);
-      }
-    };
-
-    if (user) {
-      checkUserRoleAndRedirect(user);
-    } else {
-      setAuthChecked(true);
+    // Wait until firebase auth is initialized and user is loaded
+    if (isUserLoading || !firestore) {
+      return;
     }
+
+    // If a user is logged in, check their role and redirect.
+    if (user) {
+        const checkUserRoleAndRedirect = async (currentUser: User) => {
+            const userDocRef = doc(firestore, "users", currentUser.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+
+                if (userData.role === 'admin') {
+                    router.push('/admin');
+                    return;
+                }
+                
+                if (userData.role === 'customer') {
+                    const companyId = userData.companyId;
+                    if (!companyId) {
+                        toast({ variant: 'destructive', title: 'Login Error', description: "Your user is not associated with a company." });
+                        await auth?.signOut();
+                        return;
+                    }
+
+                    const companyDocRef = doc(firestore, "companies", companyId);
+                    const companyDocSnap = await getDoc(companyDocRef);
+
+                    if (companyDocSnap.exists() && companyDocSnap.data().approved) {
+                        router.push('/dashboard');
+                    } else {
+                        toast({ variant: 'destructive', title: 'Account Not Approved', description: "Your account is awaiting admin approval. Please check back later." });
+                        await auth?.signOut();
+                    }
+                    return;
+                }
+                
+                // If role is not admin or customer
+                toast({ variant: 'destructive', title: 'Login Error', description: "Your user role is not configured for login." });
+                await auth?.signOut();
+
+            } else {
+                toast({ variant: 'destructive', title: 'Login Error', description: "User data not found." });
+                await auth?.signOut();
+            }
+        };
+
+      checkUserRoleAndRedirect(user);
+    }
+    // If no user, do nothing and show the login page.
   }, [user, isUserLoading, firestore, router, auth, toast]);
 
     const handlePostLogin = async (loggedInUser: User) => {
@@ -129,7 +126,7 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       await handlePostLogin(userCredential.user);
-      // The useEffect will handle the redirect after state update.
+      // The useEffect will handle the redirect after auth state changes.
     } catch (error: any) {
       console.error("Login Error:", error);
       let description = "An unknown error occurred. Please try again.";
@@ -146,7 +143,8 @@ export default function LoginPage() {
     }
   };
 
-  if (!authChecked) {
+  // While checking user auth state, show a loading indicator.
+  if (isUserLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Loading...</p>
@@ -154,6 +152,16 @@ export default function LoginPage() {
     );
   }
 
+  // If user is already logged in, show a redirecting message.
+  if (user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Redirecting...</p>
+      </div>
+    );
+  }
+
+  // If no user, render the login page.
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
       <div className="flex items-center justify-center py-12">
