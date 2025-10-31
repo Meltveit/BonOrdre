@@ -37,7 +37,9 @@ export default function DashboardLayout({
     const [isRoleChecked, setIsRoleChecked] = useState(false);
 
     useEffect(() => {
-        if (isUserLoading || !firestore) return; // Wait until Firebase is ready
+        if (isUserLoading || !firestore) {
+            return; // Wait until Firebase is ready
+        }
 
         if (!user) {
             router.push('/'); // If no user, send to login
@@ -52,6 +54,7 @@ export default function DashboardLayout({
                 if (docSnap.exists() && docSnap.data().role === 'admin') {
                     // If user is an admin, redirect them to the admin dashboard.
                     router.push('/admin');
+                    // We don't set isRoleChecked to true here because the redirect will happen.
                 } else {
                     // Otherwise, they are a regular user, so allow them to see the customer dashboard.
                     setIsRoleChecked(true);
@@ -68,7 +71,7 @@ export default function DashboardLayout({
     }, [user, isUserLoading, firestore, router]);
 
     // Show a loading state while checking user role to prevent flashing the customer dashboard to an admin.
-    if (!isRoleChecked || isUserLoading) {
+    if (!isRoleChecked) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <p>Loading dashboard...</p>
