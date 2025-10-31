@@ -64,7 +64,7 @@ const signupSchema = z.object({
         if (!data.billingAddressZip) ctx.addIssue({ code: "custom", path: ["billingAddressZip"], message: "Postal code is required." });
         if (!data.billingAddressCity) ctx.addIssue({ code: "custom", path: ["billingAddressCity"], message: "City is required." });
     }
-    if (!data.useBillingAsDelivery && !data.useVisitingAsBilling) {
+    if (!data.useBillingAsDelivery) {
         if (!data.deliveryAddressStreet) ctx.addIssue({ code: "custom", path: ["deliveryAddressStreet"], message: "Delivery address is required." });
         if (!data.deliveryAddressZip) ctx.addIssue({ code: "custom", path: ["deliveryAddressZip"], message: "Postal code is required." });
         if (!data.deliveryAddressCity) ctx.addIssue({ code: "custom", path: ["deliveryAddressCity"], message: "City is required." });
@@ -328,68 +328,6 @@ export default function SignupPage() {
                                                     <SelectItem value="other">Other</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Contact Information</h3>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="firstName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>First Name</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="John" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="lastName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Last Name</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Doe" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <FormField
-                                    control={form.control}
-                                    name="contactEmail"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Business Email</FormLabel>
-                                            <FormControl>
-                                                <Input type="email" placeholder="john@example.com" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="contactPhone"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Phone Number</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="+47 123 45 678" {...field} />
-                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -663,4 +601,6 @@ export default function SignupPage() {
         </div>
     );
 }
+    
+
     
