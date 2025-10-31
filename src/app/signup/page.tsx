@@ -111,7 +111,6 @@ export default function SignupPage() {
     const useVisitingAsBilling = form.watch("useVisitingAsBilling");
     const useBillingAsDelivery = form.watch("useBillingAsDelivery");
 
-    // This effect handles redirection IF a user is already logged in and lands on the signup page.
     useEffect(() => {
         if (!isUserLoading && user) {
             router.push("/dashboard"); 
@@ -127,6 +126,11 @@ export default function SignupPage() {
             });
             return;
         }
+        
+        toast({
+            title: "Creating your account...",
+            description: "Please wait.",
+        });
 
         try {
             // Check if this is the very first user
@@ -184,9 +188,7 @@ export default function SignupPage() {
                 visitingAddress,
                 billingAddress,
                 shippingAddresses: [deliveryAddress],
-                pricing: {
-                    customerSpecific: false,
-                },
+                pricing: {},
                 active: userRole === 'admin', // Admins are active by default
                 approved: userRole === 'admin', // Admins are approved by default
                 registeredAt: serverTimestamp(),
@@ -212,10 +214,7 @@ export default function SignupPage() {
                 description: userRole === 'admin' ? "Admin account created. You will be redirected." : "Your application has been submitted and is pending approval. You will be redirected.",
             });
 
-            // Redirect to login page after a short delay
-            setTimeout(() => {
-                router.push("/");
-            }, 2000);
+            router.push("/");
 
         } catch (error: any) {
             console.error("Signup Error:", error);
@@ -231,21 +230,12 @@ export default function SignupPage() {
         }
     };
 
-    if (isUserLoading) {
+    if (isUserLoading || user) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <p>Loading...</p>
             </div>
         );
-    }
-    
-    // If a user is already logged in, show a loading/redirecting message while the useEffect does its job.
-    if(user) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <p>You are already logged in. Redirecting...</p>
-            </div>
-        )
     }
 
     return (
@@ -683,5 +673,3 @@ export default function SignupPage() {
         </div>
     );
 }
-
-    
