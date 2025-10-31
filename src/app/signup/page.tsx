@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc, collection, addDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -137,66 +137,83 @@ export default function SignupPage() {
         });
 
         try {
-            // 1. Create user in Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
-            const newUser = userCredential.user;
+            const userId = userCredential.user.uid;
+
+            const visitingAddress = {
+                street: data.visitingAddressStreet,
+                zip: data.visitingAddressZip,
+                city: data.visitingAddressCity,
+            };
 
             const billingAddress = data.useVisitingAsBilling 
-                ? {
-                    street: data.visitingAddressStreet,
-                    zip: data.visitingAddressZip,
-                    city: data.visitingAddressCity,
-                }
+                ? visitingAddress 
                 : {
                     street: data.billingAddressStreet || "",
                     zip: data.billingAddressZip || "",
                     city: data.billingAddressCity || "",
                 };
 
-            const deliveryAddress = data.useBillingAsDelivery
-                ? billingAddress
-                : {
+            let deliveryAddress;
+            if (data.useBillingAsDelivery) {
+                deliveryAddress = billingAddress;
+            } else if (data.useVisitingAsBilling) {
+                deliveryAddress = visitingAddress;
+            } else {
+                deliveryAddress = {
                     street: data.deliveryAddressStreet || "",
                     zip: data.deliveryAddressZip || "",
                     city: data.deliveryAddressCity || "",
                 };
+            }
 
-            // 2. Create user document in Firestore
-            const userDocRef = doc(firestore, "users", newUser.uid);
-            await setDoc(userDocRef, {
-                uid: newUser.uid,
-                email: data.contactEmail,
-                role: "pending", // Changed from "customer" to "pending"
-                firstName: data.firstName,
-                lastName: data.lastName,
-                phone: data.contactPhone,
-                companyName: data.companyName,
+            const companyRef = await addDoc(collection(firestore, "companies"), {
+                name: data.companyName,
                 orgNumber: data.orgNumber,
                 companyType: data.companyType,
-                visitingAddress: {
-                    street: data.visitingAddressStreet,
-                    zip: data.visitingAddressZip,
-                    city: data.visitingAddressCity,
+                contactEmail: data.contactEmail,
+                contactPhone: data.contactPhone,
+                contactPerson: {
+                    firstName: data.firstName,
+                    lastName: data.lastName,
                 },
-                billingAddress: billingAddress,
-                deliveryAddress: deliveryAddress,
-                comments: data.comments || "",
-                createdAt: serverTimestamp(),
+                visitingAddress,
+                billingAddress,
+                shippingAddresses: [deliveryAddress],
+                pricing: {
+                    customerSpecific: false,
+                },
+                active: true,
                 approved: false,
+                registeredAt: serverTimestamp(),
+                comments: data.comments || "",
+            });
+
+            await setDoc(doc(firestore, "users", userId), {
+                id: userId,
+                email: data.contactEmail,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                role: "customer",
+                companyId: companyRef.id,
+                active: true,
+                createdAt: serverTimestamp(),
             });
 
             toast({
-                title: "Success!",
+                title: "Registration successful!",
                 description: "Your application has been submitted and is pending approval. You will be redirected.",
             });
 
-            // The useEffect will handle the redirect.
+            setTimeout(() => {
+                router.push("/");
+            }, 2000);
 
         } catch (error: any) {
             console.error("Signup Error:", error);
             let description = error.message || "Could not create your account.";
             if (error.code === 'auth/email-already-in-use') {
-                description = "This email is already registered. Please try logging in instead."
+                description = "This email is already registered. Please try logging in instead.";
             }
             toast({
                 variant: "destructive",
@@ -205,6 +222,14 @@ export default function SignupPage() {
             });
         }
     };
+
+    if (user) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <p>Redirecting...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-muted/40 py-12">
