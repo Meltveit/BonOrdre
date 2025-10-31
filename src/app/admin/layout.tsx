@@ -48,7 +48,7 @@ export default function AdminLayout({
     if (isUserLoading || !firestore) return;
 
     if (!user) {
-      router.push('/'); // Not logged in, redirect to login
+      router.push('/'); // Not logged in, redirect to login page
       return;
     }
 
@@ -59,7 +59,8 @@ export default function AdminLayout({
       if (docSnap.exists() && docSnap.data().role === 'admin') {
         setIsAdmin(true);
       } else {
-        router.push('/dashboard'); // Not an admin, redirect to customer dashboard
+        // If not an admin, deny access by redirecting to the customer dashboard
+        router.push('/dashboard'); 
       }
       setIsCheckingRole(false);
     };
