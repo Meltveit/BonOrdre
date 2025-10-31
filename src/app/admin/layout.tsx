@@ -11,6 +11,7 @@ import {
   Settings,
   Bell,
   LogOut,
+  Warehouse,
 } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -26,6 +27,7 @@ const navItems: NavItem[] = [
     { href: "/admin/orders", icon: ShoppingCart, label: "Orders" },
     { href: "/admin/products", icon: Package, label: "Products" },
     { href: "/admin/customers", icon: Users2, label: "Customers" },
+    { href: "/admin/stock", icon: Warehouse, label: "Stock" },
     { href: "/admin/reports", icon: LineChart, label: "Analytics" },
 ];
 

@@ -1,6 +1,7 @@
 'use client';
 import Image from "next/image";
 import { File, ListFilter, MoreHorizontal, PlusCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,8 +38,17 @@ import type { Product } from "@/lib/definitions";
 
 export default function AdminProductsPage() {
     const firestore = useFirestore();
+    const router = useRouter();
     const productsRef = useMemoFirebase(() => firestore ? collection(firestore, 'products') : null, [firestore]);
     const { data: products, isLoading } = useCollection<Product>(productsRef);
+
+    const handleAddProduct = () => {
+      router.push('/admin/products/edit/new');
+    }
+
+    const handleEditProduct = (productId: string) => {
+      router.push(`/admin/products/edit/${productId}`);
+    }
 
   return (
     <Tabs defaultValue="all">
@@ -79,7 +89,7 @@ export default function AdminProductsPage() {
               Export
             </span>
           </Button>
-          <Button size="sm" className="h-8 gap-1 bg-accent hover:bg-accent/90">
+          <Button size="sm" className="h-8 gap-1 bg-accent hover:bg-accent/90" onClick={handleAddProduct}>
             <PlusCircle className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
               Add Product
@@ -143,7 +153,7 @@ export default function AdminProductsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditProduct(product.id)}>Edit</DropdownMenuItem>
                             <DropdownMenuItem>Archive</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
