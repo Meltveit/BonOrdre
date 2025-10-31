@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link";
@@ -650,7 +651,7 @@ export default function SignupPage() {
                                 )}
                             />
 
-                            <FormField
+                           <FormField
                                 control={form.control}
                                 name="acceptTerms"
                                 render={({ field }) => (
