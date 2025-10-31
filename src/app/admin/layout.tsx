@@ -18,8 +18,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DashboardHeader } from "@/components/dashboard-header";
 import type { NavItem } from "@/lib/definitions";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/firebase";
+import { useAuth, useUser, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
 
 
 const navItems: NavItem[] = [
@@ -36,6 +38,49 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isCheckingRole, setIsCheckingRole] = useState(true);
+
+  useEffect(() => {
+    if (isUserLoading || !firestore) return;
+
+    if (!user) {
+      router.push('/'); // Not logged in, redirect to login
+      return;
+    }
+
+    const checkAdminRole = async () => {
+      const userDocRef = doc(firestore, "users", user.uid);
+      const docSnap = await getDoc(userDocRef);
+
+      if (docSnap.exists() && docSnap.data().role === 'admin') {
+        setIsAdmin(true);
+      } else {
+        router.push('/dashboard'); // Not an admin, redirect to customer dashboard
+      }
+      setIsCheckingRole(false);
+    };
+
+    checkAdminRole();
+
+  }, [user, isUserLoading, firestore, router]);
+
+
+  if (isCheckingRole) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <p>Verifying access...</p>
+        </div>
+    );
+  }
+
+  if (!isAdmin) {
+    // This is a fallback, the redirect should have already happened.
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
