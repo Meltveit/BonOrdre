@@ -26,6 +26,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const signupSchema = z.object({
     companyName: z.string().min(1, { message: "Company name is required." }),
     orgNumber: z.string().min(9, { message: "Organization number must be at least 9 digits." }),
@@ -145,11 +148,10 @@ export default function SignupPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
             const uid = userCredential.user.uid;
 
-            // Create Company first to get its ID
             const companyRef = await addDoc(collection(firestore, 'companies'), {
                 name: data.companyName,
                 orgNumber: data.orgNumber,
-                companyType: data.companyType, // Corrected field name
+                companyType: data.companyType, 
                 visitingAddress: { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity },
                 billingAddress: data.useVisitingAsBilling ? 
                     { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity } :
@@ -177,12 +179,12 @@ export default function SignupPage() {
                 id: uid,
                 email: data.contactEmail,
                 role: 'customer',
-                companyId: companyRef.id, // Use the new company ID
+                companyId: companyRef.id, 
                 firstName: data.firstName,
                 lastName: data.lastName,
                 phone: data.contactPhone,
                 approved: false,
-                active: false, // User is inactive until company is approved
+                active: false, 
                 createdAt: serverTimestamp(),
                 lastLogin: serverTimestamp(),
                 notificationSettings: {},
@@ -248,16 +250,16 @@ export default function SignupPage() {
                                     control={form.control}
                                     name="useVisitingAsBilling"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
                                             <FormControl>
                                                 <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
                                                 />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel className="font-normal">
-                                                Billing address is the same as visiting address
+                                                <FormLabel>
+                                                    Billing address is the same as visiting address
                                                 </FormLabel>
                                             </div>
                                         </FormItem>
@@ -279,7 +281,7 @@ export default function SignupPage() {
                                     control={form.control}
                                     name="useBillingAsDelivery"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
                                             <FormControl>
                                                 <Checkbox
                                                 checked={field.value}
@@ -287,8 +289,8 @@ export default function SignupPage() {
                                                 />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel className="font-normal">
-                                                Delivery address is the same as billing address
+                                                <FormLabel>
+                                                    Delivery address is the same as billing address
                                                 </FormLabel>
                                             </div>
                                         </FormItem>
@@ -329,7 +331,7 @@ export default function SignupPage() {
                                 control={form.control}
                                 name="acceptTerms"
                                 render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                         <FormControl>
                                             <Checkbox
                                                 checked={field.value}
@@ -337,16 +339,13 @@ export default function SignupPage() {
                                                 id="terms"
                                             />
                                         </FormControl>
-                                        <div className="grid gap-1.5 leading-none">
-                                            <label
-                                            htmlFor="terms"
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                            >
+                                        <div className="space-y-1 leading-none">
+                                            <Label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                             I accept the terms and conditions
-                                            </label>
-                                            <p className="text-sm text-muted-foreground">
+                                            </Label>
+                                            <FormDescription>
                                             You agree to our <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
-                                            </p>
+                                            </FormDescription>
                                             <FormMessage />
                                         </div>
                                     </FormItem>
