@@ -27,26 +27,28 @@ import {
 } from "@/components/ui/table";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, doc, updateDoc } from "firebase/firestore";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import type { Company } from "@/lib/definitions";
 
 export default function AdminCustomersPage() {
     const firestore = useFirestore();
+    const { toast } = useToast();
     const companiesRef = useMemoFirebase(() => firestore ? collection(firestore, 'companies') : null, [firestore]);
     const { data: companies, isLoading } = useCollection<Company>(companiesRef);
 
     const getBadgeVariant = (approved: boolean, active: boolean): "default" | "secondary" | "destructive" | "outline" => {
         if (approved && active) return 'default';
-        if (!approved && active) return 'secondary'; // Pending approval
-        if (!active && !approved) return 'destructive'; // Rejected
+        if (!approved && !active) return 'secondary'; // Pending approval
+        if (approved && !active) return 'destructive'; // Deactivated
+        if (!approved && active) return 'destructive'; // Rejected
         return 'outline';
     }
 
     const getStatusText = (approved: boolean, active: boolean) => {
         if (approved && active) return 'Approved';
-        if (!approved && active) return 'Pending Approval';
-        if (!active && !approved) return 'Rejected';
-        if (!active && approved) return 'Deactivated';
+        if (!approved && !active) return 'Pending Approval';
+        if (approved && !active) return 'Deactivated';
+        if (!approved && active) return 'Rejected'; // This state happens when rejected
         return 'Unknown';
     }
 
@@ -59,11 +61,11 @@ export default function AdminCustomersPage() {
         toast({ title: `${actionText} company...` });
 
         try {
+            // When rejecting, we set approved to false and active to true to signify rejection.
+            // When approving, both become true.
             await updateDoc(companyDocRef, {
                 approved: approve,
-                // If we reject, the company should also become inactive.
-                // If we approve, it becomes active.
-                active: approve, 
+                active: approve ? true : true, // A rejected company is marked as active=true, approved=false
             });
             toast({ title: `Company ${actionDoneText}` });
         } catch (error: any) {
@@ -142,7 +144,8 @@ export default function AdminCustomersPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      {!company.approved && company.active && (
+                      {/* Show Approve/Reject only if it's a new, pending application */}
+                      {!company.approved && !company.active && (
                         <>
                             <DropdownMenuItem onClick={() => handleApproval(company.id, true)}>
                                 Approve
@@ -153,12 +156,12 @@ export default function AdminCustomersPage() {
                             <DropdownMenuSeparator />
                         </>
                       )}
+                       {/* Show Deactivate/Activate only if company is approved */}
                        {company.approved && (
                          <DropdownMenuItem onClick={() => handleDeactivation(company.id, company.active)} className={company.active ? 'text-destructive' : ''}>
                             {company.active ? 'Deactivate' : 'Activate'}
                         </DropdownMenuItem>
                        )}
-                      <DropdownMenuSeparator />
                       <DropdownMenuItem>View Details</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

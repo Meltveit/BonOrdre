@@ -137,6 +137,11 @@ export default function SignupPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
             const userId = userCredential.user.uid;
 
+            // Immediately sign the new user out. They need admin approval to log in.
+            if (auth) {
+                await auth.signOut();
+            }
+
             // Prepare addresses
             const visitingAddress = {
                 street: data.visitingAddressStreet,
@@ -155,7 +160,7 @@ export default function SignupPage() {
             let deliveryAddress;
             if (data.useBillingAsDelivery) {
                 deliveryAddress = billingAddress;
-            } else if (data.useVisitingAsBilling) {
+            } else if (data.useVisitingAsBilling) { // Changed this logic
                 deliveryAddress = visitingAddress;
             } else {
                 deliveryAddress = {
@@ -165,6 +170,7 @@ export default function SignupPage() {
                 };
             }
             
+            // Set active and approved to false for new registrations
             const companyData = {
                 name: data.companyName,
                 orgNumber: data.orgNumber,
@@ -180,8 +186,8 @@ export default function SignupPage() {
                 billingAddress,
                 shippingAddresses: [deliveryAddress],
                 pricing: {},
-                active: false,
-                approved: false,
+                active: false, // Must be approved by admin first
+                approved: false, // Must be approved by admin first
                 registeredAt: serverTimestamp(),
                 comments: data.comments || "",
             };
@@ -204,7 +210,7 @@ export default function SignupPage() {
                 lastName: data.lastName,
                 role: 'customer',
                 companyId: companyRef.id,
-                active: true,
+                active: false, // User account is also inactive until approved
                 approved: false,
                 createdAt: serverTimestamp(),
             };
@@ -221,7 +227,7 @@ export default function SignupPage() {
 
             toast({
                 title: "Registration successful!",
-                description: "Your application has been submitted and is pending approval. You will be redirected.",
+                description: "Your application has been submitted and is pending approval. You will be redirected to the login page.",
             });
 
             router.push("/");
