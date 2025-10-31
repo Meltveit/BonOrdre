@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link";
@@ -76,7 +77,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export default function SignupPage() {
     const auth = useAuth();
     const firestore = useFirestore();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const router = useRouter();
     const { toast } = useToast();
     
