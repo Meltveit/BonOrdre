@@ -76,7 +76,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export default function SignupPage() {
     const auth = useAuth();
     const firestore = useFirestore();
-    const user = useUser();
+    const { user } = useUser();
     const router = useRouter();
     const { toast } = useToast();
     
@@ -583,7 +583,7 @@ export default function SignupPage() {
                                 />
                             </div>
 
-                            {/* Accept Terms - FIXED */}
+                            {/* Accept Terms */}
                             <FormField
                                 control={form.control}
                                 name="acceptTerms"
