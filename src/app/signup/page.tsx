@@ -1,13 +1,13 @@
 'use client';
 
 import Link from "next/link";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, addDoc, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
-import { useAuth, useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useAuth, useFirestore, useUser } from "@/firebase";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,13 +28,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const signupSchema = z.object({
     companyName: z.string().min(1, { message: "Company name is required." }),
-    orgNumber: z.string().min(1, { message: "Organization number is required." }),
-    companyType: z.enum(["distributor", "bar", "hotel", "restaurant", "other"], { 
-        errorMap: () => ({ message: "Please select a company type." }) 
-    }),
-    country: z.string().min(1, { message: "Country is required." }),
+    orgNumber: z.string().min(9, { message: "Organization number must be at least 9 digits." }),
+    companyType: z.string().min(1, { message: "Company type is required." }),
     
-    contactEmail: z.string().email({ message: "Invalid email address." }),
+    contactEmail: z.string().email({ message: "Invalid business email address." }),
     contactPhone: z.string().min(1, { message: "Phone number is required." }),
     
     firstName: z.string().min(1, { message: "First name is required." }),
@@ -71,22 +68,21 @@ const signupSchema = z.object({
     }
 });
 
-type SignupFormValues = z.infer<typeof signupSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
-    const { user } = useUser();
     const auth = useAuth();
     const firestore = useFirestore();
+    const { user, isUserLoading } = useUser();
     const router = useRouter();
     const { toast } = useToast();
-
-    const form = useForm<SignupFormValues>({
+    
+    const form = useForm<SignupFormData>({
         resolver: zodResolver(signupSchema),
         defaultValues: {
             companyName: "",
             orgNumber: "",
-            companyType: undefined,
-            country: "",
+            companyType: "",
             contactEmail: "",
             contactPhone: "",
             firstName: "",
@@ -94,11 +90,11 @@ export default function SignupPage() {
             visitingAddressStreet: "",
             visitingAddressZip: "",
             visitingAddressCity: "",
-            useVisitingAsBilling: false,
+            useVisitingAsBilling: true,
             billingAddressStreet: "",
             billingAddressZip: "",
             billingAddressCity: "",
-            useBillingAsDelivery: false,
+            useBillingAsDelivery: true,
             deliveryAddressStreet: "",
             deliveryAddressZip: "",
             deliveryAddressCity: "",
@@ -108,130 +104,107 @@ export default function SignupPage() {
         },
     });
 
-    const useVisitingAsBilling = form.watch("useVisitingAsBilling");
-    const useBillingAsDelivery = form.watch("useBillingAsDelivery");
+    const useVisitingAsBilling = form.watch('useVisitingAsBilling');
+    const useBillingAsDelivery = form.watch('useBillingAsDelivery');
 
     useEffect(() => {
+        if (isUserLoading || !firestore) return;
         if (user) {
-            router.push("/dashboard");
+            const userDocRef = doc(firestore, "users", user.uid);
+            getDoc(userDocRef).then(docSnap => {
+                if (docSnap.exists() && docSnap.data().role === 'admin') {
+                    router.push('/admin');
+                } else {
+                    router.push('/dashboard');
+                }
+            });
         }
-    }, [user, router]);
+    }, [user, isUserLoading, router, firestore]);
 
-    const onSubmit = async (data: SignupFormValues) => {
+    const onSubmit: SubmitHandler<SignupFormData> = async (data) => {
         if (!auth || !firestore) {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Firebase is not properly initialized.",
+                description: "Firebase is not initialized.",
             });
             return;
         }
 
-        const companyData = {
-                name: data.companyName,
+        toast({
+            title: "Creating your account...",
+            description: "Please wait.",
+        });
+
+        try {
+            // 1. Create user in Firebase Auth
+            const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
+            const newUser = userCredential.user;
+
+            const billingAddress = data.useVisitingAsBilling 
+                ? {
+                    street: data.visitingAddressStreet,
+                    zip: data.visitingAddressZip,
+                    city: data.visitingAddressCity,
+                }
+                : {
+                    street: data.billingAddressStreet || "",
+                    zip: data.billingAddressZip || "",
+                    city: data.billingAddressCity || "",
+                };
+
+            const deliveryAddress = data.useBillingAsDelivery
+                ? billingAddress
+                : {
+                    street: data.deliveryAddressStreet || "",
+                    zip: data.deliveryAddressZip || "",
+                    city: data.deliveryAddressCity || "",
+                };
+
+            // 2. Create user document in Firestore
+            const userDocRef = doc(firestore, "users", newUser.uid);
+            await setDoc(userDocRef, {
+                uid: newUser.uid,
+                email: data.contactEmail,
+                role: "pending", // Changed from "customer" to "pending"
+                firstName: data.firstName,
+                lastName: data.lastName,
+                phone: data.contactPhone,
+                companyName: data.companyName,
                 orgNumber: data.orgNumber,
                 companyType: data.companyType,
-                country: data.country,
-                contactEmail: data.contactEmail,
-                contactPhone: data.contactPhone,
-                contactPerson: {
-                    firstName: data.firstName,
-                    lastName: data.lastName,
-                },
                 visitingAddress: {
                     street: data.visitingAddressStreet,
                     zip: data.visitingAddressZip,
                     city: data.visitingAddressCity,
                 },
-                billingAddress: data.useVisitingAsBilling 
-                    ? { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity }
-                    : { street: data.billingAddressStreet || "", zip: data.billingAddressZip || "", city: data.billingAddressCity || "" },
-                shippingAddresses: [
-                    data.useBillingAsDelivery
-                    ? (data.useVisitingAsBilling 
-                        ? { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity }
-                        : { street: data.billingAddressStreet || "", zip: data.billingAddressZip || "", city: data.billingAddressCity || "" })
-                    : { street: data.deliveryAddressStreet || "", zip: data.deliveryAddressZip || "", city: data.deliveryAddressCity || "" }
-                ],
-                pricing: {},
-                active: true,
-                approved: false,
-                registeredAt: serverTimestamp(),
+                billingAddress: billingAddress,
+                deliveryAddress: deliveryAddress,
                 comments: data.comments || "",
-            };
+                createdAt: serverTimestamp(),
+                approved: false,
+            });
 
-        let userCredential;
-        try {
-            userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
+            toast({
+                title: "Success!",
+                description: "Your application has been submitted and is pending approval. You will be redirected.",
+            });
+
+            // The useEffect will handle the redirect.
+
         } catch (error: any) {
-             console.error("Auth Error:", error);
-            let description = error.message || "Could not create your user.";
+            console.error("Signup Error:", error);
+            let description = error.message || "Could not create your account.";
             if (error.code === 'auth/email-already-in-use') {
-                description = "This email is already registered. Please try logging in instead.";
+                description = "This email is already registered. Please try logging in instead."
             }
             toast({
                 variant: "destructive",
                 title: "Uh oh! Something went wrong.",
                 description: description,
             });
-            return; // Stop execution
-        }
-
-        const userId = userCredential.user.uid;
-
-        try {
-            const companyRef = await addDoc(collection(firestore, "companies"), companyData);
-            
-            const userData = {
-                id: userId,
-                email: data.contactEmail,
-                firstName: data.firstName,
-                lastName: data.lastName,
-                role: "customer",
-                companyId: companyRef.id,
-                active: true,
-                createdAt: serverTimestamp(),
-            };
-            
-            const userDocRef = doc(firestore, "users", userId);
-            setDoc(userDocRef, userData).catch(serverError => {
-                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'create',
-                    requestResourceData: userData
-                }));
-                throw serverError;
-            });
-
-            toast({
-                title: "Registration successful!",
-                description: "Your application has been submitted and is pending approval. You will be redirected.",
-            });
-
-            setTimeout(() => {
-                router.push("/");
-            }, 2000);
-
-        } catch (error: any) {
-            console.error("Firestore Error:", error);
-            const description = error.message || "Could not save your registration data.";
-            if (error.name !== 'FirebaseError' || !error.message.includes('Firestore Security Rules')) {
-                toast({
-                    variant: "destructive",
-                    title: "Uh oh! Something went wrong.",
-                    description: description,
-                });
-            }
         }
     };
-
-    if (user) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <p>Redirecting...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-muted/40 py-12">
@@ -249,8 +222,10 @@ export default function SignupPage() {
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Company Information</h3>
+                            
+                            {/* Company Information */}
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h3 className="font-semibold text-lg font-headline">Company Information</h3>
                                 
                                 <FormField
                                     control={form.control}
@@ -259,54 +234,29 @@ export default function SignupPage() {
                                         <FormItem>
                                             <FormLabel>Company Name</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Example AS" {...field} />
+                                                <Input placeholder="ABC Trading AS" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="orgNumber"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Organization Number</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="123456789" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="country"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Country</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select country" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="norway">Norway</SelectItem>
-                                                        <SelectItem value="sweden">Sweden</SelectItem>
-                                                        <SelectItem value="denmark">Denmark</SelectItem>
-                                                        <SelectItem value="finland">Finland</SelectItem>
-                                                        <SelectItem value="iceland">Iceland</SelectItem>
-                                                        <SelectItem value="other">Other</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="orgNumber"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Organization Number</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="123456789" {...field} />
+                                            </FormControl>
+                                            <FormDescription>
+                                                Norwegian organization number (9 digits)
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
                                 <FormField
                                     control={form.control}
@@ -334,58 +284,62 @@ export default function SignupPage() {
                                 />
                             </div>
 
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Addresses</h3>
+                            {/* Address Information */}
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h3 className="font-semibold text-lg font-headline">Address Information</h3>
                                 
-                                <FormField
-                                    control={form.control}
-                                    name="visitingAddressStreet"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Visiting Address</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Main Street 15" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-4">
+                                    <h4 className="font-medium text-md">Visiting Address</h4>
                                     <FormField
                                         control={form.control}
-                                        name="visitingAddressZip"
+                                        name="visitingAddressStreet"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Postal Code</FormLabel>
+                                                <FormLabel>Street Address</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="0184" {...field} />
+                                                    <Input placeholder="Storgata 15" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="visitingAddressZip"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Postal Code</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="0184" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                    <FormField
-                                        control={form.control}
-                                        name="visitingAddressCity"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>City</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Oslo" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                        <FormField
+                                            control={form.control}
+                                            name="visitingAddressCity"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>City</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Oslo" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </div>
 
                                 <FormField
                                     control={form.control}
                                     name="useVisitingAsBilling"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                             <FormControl>
                                                 <Checkbox
                                                     checked={field.value}
@@ -402,9 +356,8 @@ export default function SignupPage() {
                                 />
 
                                 {!useVisitingAsBilling && (
-                                    <div className="space-y-4 pl-4 border-l-2 border-muted">
+                                    <div className="space-y-4 pl-4 border-l">
                                         <h4 className="font-medium text-md">Billing Address</h4>
-                                        
                                         <FormField
                                             control={form.control}
                                             name="billingAddressStreet"
@@ -418,7 +371,6 @@ export default function SignupPage() {
                                                 </FormItem>
                                             )}
                                         />
-
                                         <div className="grid grid-cols-2 gap-4">
                                             <FormField
                                                 control={form.control}
@@ -433,7 +385,6 @@ export default function SignupPage() {
                                                     </FormItem>
                                                 )}
                                             />
-
                                             <FormField
                                                 control={form.control}
                                                 name="billingAddressCity"
@@ -455,7 +406,7 @@ export default function SignupPage() {
                                     control={form.control}
                                     name="useBillingAsDelivery"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                             <FormControl>
                                                 <Checkbox
                                                     checked={field.value}
@@ -472,9 +423,8 @@ export default function SignupPage() {
                                 />
 
                                 {!useBillingAsDelivery && (
-                                    <div className="space-y-4 pl-4 border-l-2 border-muted">
+                                    <div className="space-y-4 pl-4 border-l">
                                         <h4 className="font-medium text-md">Delivery Address</h4>
-                                        
                                         <FormField
                                             control={form.control}
                                             name="deliveryAddressStreet"
@@ -488,7 +438,6 @@ export default function SignupPage() {
                                                 </FormItem>
                                             )}
                                         />
-
                                         <div className="grid grid-cols-2 gap-4">
                                             <FormField
                                                 control={form.control}
@@ -503,7 +452,6 @@ export default function SignupPage() {
                                                     </FormItem>
                                                 )}
                                             />
-
                                             <FormField
                                                 control={form.control}
                                                 name="deliveryAddressCity"
@@ -522,45 +470,103 @@ export default function SignupPage() {
                                 )}
                             </div>
 
-                            <FormField
-                                control={form.control}
-                                name="comments"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Comments (optional)</FormLabel>
-                                        <FormControl>
-                                            <Textarea 
-                                                placeholder="Add any additional information here..." 
-                                                className="resize-none" 
-                                                {...field} 
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Any special needs or information
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {/* Contact Person */}
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h3 className="font-semibold text-lg font-headline">Contact Person</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="firstName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>First name</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Max" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="lastName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Last name</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Robinson" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="contactEmail"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Contact Email (for login)</FormLabel>
+                                                <FormControl>
+                                                    <Input type="email" placeholder="m@example.com" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="contactPhone"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Phone</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="+47 123 45 678" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Password</FormLabel>
+                                            <FormControl>
+                                                <Input type="password" {...field} />
+                                            </FormControl>
+                                            <FormDescription>
+                                                At least 6 characters
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
-                            <FormField
-                                control={form.control}
-                                name="password"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Password</FormLabel>
-                                        <FormControl>
-                                            <Input type="password" placeholder="••••••••" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            At least 6 characters
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {/* Additional Information */}
+                            <div className="space-y-4 rounded-md border p-4">
+                                <h3 className="font-semibold text-lg font-headline">Additional Information</h3>
+                                <FormField
+                                    control={form.control}
+                                    name="comments"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Comments (Optional)</FormLabel>
+                                            <FormControl>
+                                                <Textarea placeholder="Any extra information for the admin team..." {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
-                           <FormField
+                            {/* Accept Terms */}
+                            <FormField
                                 control={form.control}
                                 name="acceptTerms"
                                 render={({ field }) => (
@@ -578,29 +584,32 @@ export default function SignupPage() {
                                                     terms and conditions
                                                 </Link>
                                             </FormLabel>
+                                            <FormDescription>
+                                                You agree to our Terms of Service and Privacy Policy.
+                                            </FormDescription>
                                             <FormMessage />
                                         </div>
                                     </FormItem>
                                 )}
                             />
 
-                            <Button type="submit" className="w-full" size="lg">
-                                Create Account
+                            <Button 
+                                type="submit" 
+                                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" 
+                                disabled={form.formState.isSubmitting}
+                            >
+                                {form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}
                             </Button>
-
-                            <div className="text-center text-sm">
-                                Already have an account?{" "}
-                                <Link href="/" className="underline">
-                                    Log in
-                                </Link>
-                            </div>
                         </form>
                     </Form>
+                    <div className="mt-4 text-center text-sm">
+                        Already have an account?{" "}
+                        <Link href="/" className="underline">
+                            Sign in
+                        </Link>
+                    </div>
                 </CardContent>
             </Card>
         </div>
     );
 }
-    
-
-    
