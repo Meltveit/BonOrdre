@@ -26,7 +26,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
-// Force dynamic rendering to prevent prerendering issues
 export const dynamic = 'force-dynamic';
 
 const signupSchema = z.object({
@@ -218,7 +217,7 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="container flex h-screen w-screen flex-col items-center justify-center">
+        <div className="container flex min-h-screen w-screen flex-col items-center py-8">
             <Card className="w-full max-w-4xl">
                 <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-4"><Logo /></div>
