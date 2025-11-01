@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDoc, collection, addDoc } from "firebase/firestore";
-import { Label } from "@/components/ui/label";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export const dynamic = 'force-dynamic';
 
@@ -378,6 +378,3 @@ export default function SignupPage() {
             </Card>
         </div>
     );
-}
-
-    
