@@ -18,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import { useAuth, useFirestore, useUser } from "@/firebase";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -335,12 +336,13 @@ export default function SignupPage() {
                                             <Checkbox
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
+                                                id="terms"
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
-                                            <FormLabel className="font-normal">
+                                            <Label htmlFor="terms" className="font-normal">
                                                 I accept the terms and conditions
-                                            </FormLabel>
+                                            </Label>
                                             <FormDescription>
                                                 You agree to our{" "}
                                                 <Link href="/terms" className="underline hover:text-primary">
