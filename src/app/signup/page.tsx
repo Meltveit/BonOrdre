@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+// FJERNET: import { Label } from "@/components/ui/label";
 
 export const dynamic = 'force-dynamic';
 
@@ -336,13 +336,12 @@ export default function SignupPage() {
                                             <Checkbox
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
-                                                id="terms"
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
-                                            <Label htmlFor="terms" className="font-normal">
+                                            <FormLabel className="font-normal">
                                                 I accept the terms and conditions
-                                            </Label>
+                                            </FormLabel>
                                             <FormDescription>
                                                 You agree to our{" "}
                                                 <Link href="/terms" className="underline hover:text-primary">
@@ -380,5 +379,3 @@ export default function SignupPage() {
         </div>
     );
 }
-
-    
