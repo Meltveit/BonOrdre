@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDoc, collection, addDoc } from "firebase/firestore";
-
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Card,
