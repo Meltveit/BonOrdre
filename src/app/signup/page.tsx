@@ -18,7 +18,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import { useAuth, useFirestore, useUser } from "@/firebase";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -140,7 +139,11 @@ export default function SignupPage() {
 
     const onSubmit: SubmitHandler<SignupFormData> = async (data) => {
         if (!auth || !firestore) {
-            toast({ title: "Error", description: "Firebase services not available.", variant: "destructive" });
+            toast({ 
+                title: "Error", 
+                description: "Firebase services not available.", 
+                variant: "destructive" 
+            });
             return;
         }
 
@@ -148,62 +151,50 @@ export default function SignupPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
             const uid = userCredential.user.uid;
 
-            const companyRef = await addDoc(collection(firestore, 'companies'), {
-                name: data.companyName,
+            const applicationRef = doc(collection(firestore, "companyApplications"), uid);
+            await setDoc(applicationRef, {
+                companyName: data.companyName,
                 orgNumber: data.orgNumber,
-                companyType: data.companyType, 
-                visitingAddress: { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity },
-                billingAddress: data.useVisitingAsBilling ? 
-                    { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity } :
-                    { street: data.billingAddressStreet, zip: data.billingAddressZip, city: data.billingAddressCity },
-                shippingAddresses: [ data.useBillingAsDelivery ?
-                    (data.useVisitingAsBilling ? 
-                        { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity } : 
-                        { street: data.billingAddressStreet, zip: data.billingAddressZip, city: data.billingAddressCity }
-                    ) :
-                    { street: data.deliveryAddressStreet, zip: data.deliveryAddressZip, city: data.deliveryAddressCity }
-                ],
-                contactPerson: { firstName: data.firstName, lastName: data.lastName },
+                companyType: data.companyType,
                 contactEmail: data.contactEmail,
                 contactPhone: data.contactPhone,
-                active: false,
-                approved: false,
-                registeredAt: serverTimestamp(),
-                approvedAt: null,
-                approvedBy: null,
-                adminNotes: data.comments || "",
-                pricing: {},
+                contactPerson: {
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                },
+                visitingAddress: {
+                    street: data.visitingAddressStreet,
+                    zip: data.visitingAddressZip,
+                    city: data.visitingAddressCity,
+                },
+                billingAddress: {
+                    street: data.billingAddressStreet || data.visitingAddressStreet,
+                    zip: data.billingAddressZip || data.visitingAddressZip,
+                    city: data.billingAddressCity || data.visitingAddressCity,
+                },
+                deliveryAddress: {
+                    street: data.deliveryAddressStreet || data.billingAddressStreet || data.visitingAddressStreet,
+                    zip: data.deliveryAddressZip || data.billingAddressZip || data.visitingAddressZip,
+                    city: data.deliveryAddressCity || data.billingAddressCity || data.visitingAddressCity,
+                },
+                comments: data.comments || "",
+                submittedAt: serverTimestamp(),
+                status: "pending",
+                userId: uid,
             });
 
-            await setDoc(doc(firestore, 'users', uid), {
-                id: uid,
+            const userDocRef = doc(firestore, "users", uid);
+            await setDoc(userDocRef, {
                 email: data.contactEmail,
-                role: 'customer',
-                companyId: companyRef.id, 
                 firstName: data.firstName,
                 lastName: data.lastName,
-                phone: data.contactPhone,
-                approved: false,
-                active: false, 
-                createdAt: serverTimestamp(),
-                lastLogin: serverTimestamp(),
-                notificationSettings: {},
-                permissions: {},
-            });
-
-            await addDoc(collection(firestore, 'notifications'), {
-                type: 'new_signup',
-                title: 'New Company Registration',
-                message: `${data.companyName} has registered and is pending approval.`,
-                companyId: companyRef.id,
-                companyName: data.companyName,
-                read: false,
+                role: "pending",
                 createdAt: serverTimestamp(),
             });
 
             toast({
                 title: "Application Submitted",
-                description: "Your application is pending review. You will be redirected.",
+                description: "Your application has been submitted. You will be redirected.",
             });
 
             router.push('/');
@@ -326,7 +317,7 @@ export default function SignupPage() {
                                 <h3 className="font-semibold text-lg font-headline">Additional Information</h3>
                                 <FormField control={form.control} name="comments" render={({ field }) => (<FormItem><FormLabel>Comments (Optional)</FormLabel><FormControl><Textarea placeholder="Any extra information for the admin team..." {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
-
+                            
                             <FormField
                                 control={form.control}
                                 name="acceptTerms"
@@ -336,13 +327,12 @@ export default function SignupPage() {
                                             <Checkbox
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
-                                                id="terms"
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
-                                            <Label htmlFor="terms" className="font-normal">
+                                            <label className="text-sm font-medium leading-none cursor-pointer">
                                                 I accept the terms and conditions
-                                            </Label>
+                                            </label>
                                             <FormDescription>
                                                 You agree to our{" "}
                                                 <Link href="/terms" className="underline hover:text-primary">
