@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDoc, collection, addDoc } from "firebase/firestore";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -330,9 +329,9 @@ export default function SignupPage() {
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
-                                            <label className="text-sm font-medium leading-none cursor-pointer">
+                                            <FormLabel className="font-normal">
                                                 I accept the terms and conditions
-                                            </label>
+                                            </FormLabel>
                                             <FormDescription>
                                                 You agree to our{" "}
                                                 <Link href="/terms" className="underline hover:text-primary">
