@@ -25,7 +25,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-// FJERNET: import { Label } from "@/components/ui/label";
 
 export const dynamic = 'force-dynamic';
 
