@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { doc, setDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { ChevronsRight, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -190,11 +190,11 @@ export default function EditProductPage() {
 
     try {
       if (isNewProduct) {
-        const newDocRef = await addDoc(collection(firestore, 'products'), { ...data, createdAt: new Date(), updatedAt: new Date() });
+        const newDocRef = await addDoc(collection(firestore, 'products'), { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
         toast({ title: 'Product Created!', description: `${data.name} has been added.` });
         router.push(`/admin/products/edit/${newDocRef.id}`);
       } else {
-        await setDoc(doc(firestore, 'products', id as string), { ...data, updatedAt: new Date() }, { merge: true });
+        await setDoc(doc(firestore, 'products', id as string), { ...data, updatedAt: serverTimestamp() }, { merge: true });
         toast({ title: 'Product Updated!', description: `${data.name} has been saved.` });
         router.push('/admin/products');
       }
@@ -374,7 +374,7 @@ export default function EditProductPage() {
                 {structure === 'hierarchical' && (
                     <>
                         <FormField control={form.control} name="pricing.standard.mellompakk" render={({ field }) => (<FormItem><FormLabel>Mellompakk Price (per pack)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="pricing.standard.toppakk" render={({ field }) => (<FormItem><FormLabel>Toppakk Price (per pallet)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="pricing.standard.toppakk" render={({ field }) => (<FormItem><FormLabel>Toppakk Price (per pallet)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormMessage /></FormItem>)} />
                     </>
                 )}
             </SectionCard>
