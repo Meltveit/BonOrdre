@@ -125,13 +125,14 @@ const DimensionsInput = ({ control, namePrefix }: { control: any, namePrefix: `f
 
 
 export default function EditProductPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string | undefined;
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const isNewProduct = id === 'new';
 
-  const productRef = useMemoFirebase(() => !isNewProduct && firestore ? doc(firestore, 'products', id as string) : null, [isNewProduct, firestore, id]);
+  const productRef = useMemoFirebase(() => !isNewProduct && firestore && id ? doc(firestore, 'products', id) : null, [isNewProduct, firestore, id]);
   const { data: product, isLoading: isLoadingProduct } = useDoc<Product>(productRef);
 
   const form = useForm<ProductFormData>({
@@ -166,7 +167,12 @@ export default function EditProductPage() {
   }, [product, form]);
   
   useEffect(() => {
-    const total = calculateTotalUnits(inventoryValues, structure, mellompakkValues?.quantityPerBox, toppakkValues?.boxesPerPallet);
+    const total = calculateTotalUnits(
+      { ...inventoryValues, lastUpdated: new Date() } as any,
+      structure,
+      mellompakkValues?.quantityPerBox,
+      toppakkValues?.boxesPerPallet
+    );
     if(total !== inventoryValues.totalUnits) {
         form.setValue('inventory.totalUnits', total, { shouldValidate: true });
     }
@@ -174,7 +180,7 @@ export default function EditProductPage() {
 
 
   const onSubmit: SubmitHandler<ProductFormData> = async (data) => {
-    if (!firestore) return;
+    if (!firestore || !id) return;
 
     toast({ title: isNewProduct ? 'Creating product...' : 'Updating product...'});
 
@@ -194,7 +200,7 @@ export default function EditProductPage() {
         toast({ title: 'Product Created!', description: `${data.name} has been added.` });
         router.push(`/admin/products/edit/${newDocRef.id}`);
       } else {
-        await setDoc(doc(firestore, 'products', id as string), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+        await setDoc(doc(firestore, 'products', id), { ...data, updatedAt: serverTimestamp() }, { merge: true });
         toast({ title: 'Product Updated!', description: `${data.name} has been saved.` });
         router.push('/admin/products');
       }
@@ -213,7 +219,7 @@ export default function EditProductPage() {
 
   return (
     <div>
-        <Form {...form}>
+        <Form {...form as any}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-8">
                 <div className="flex items-center justify-between">
                     <div>

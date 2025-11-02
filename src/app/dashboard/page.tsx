@@ -81,8 +81,8 @@ export default function DashboardPage() {
             {products?.map((product) => (
                 <Card key={product.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
                     <CardHeader className="p-0">
-                        {product.images?.url && <Image
-                            src={product.images.url}
+                        {(product.images?.main || product.fpakk?.image) && <Image
+                            src={product.images?.main || product.fpakk?.image || ''}
                             alt={product.name}
                             width={400}
                             height={400}
@@ -92,7 +92,7 @@ export default function DashboardPage() {
                     <CardContent className="p-4 grid gap-2">
                         <CardTitle className="font-headline text-lg">{product.name}</CardTitle>
                         <CardDescription className="text-sm">{product.category}</CardDescription>
-                        <p className="font-semibold text-base">{product.pricing?.basePrice?.toFixed(2) || 'N/A'} kr</p>
+                        <p className="font-semibold text-base">{product.pricing?.standard?.fpakk?.toFixed(2) || 'N/A'} kr</p>
                     </CardContent>
                     <CardFooter className="p-4 pt-0">
                         <Button className="w-full">Add to Cart</Button>

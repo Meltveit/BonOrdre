@@ -36,36 +36,27 @@ export default function AdminCustomersPage() {
     const companiesRef = useMemoFirebase(() => firestore ? collection(firestore, 'companies') : null, [firestore]);
     const { data: companies, isLoading } = useCollection<Company>(companiesRef);
 
-    const getBadgeVariant = (approved: boolean, active: boolean): "default" | "secondary" | "destructive" | "outline" => {
-        if (approved && active) return 'default';
-        if (!approved && !active) return 'secondary'; // Pending approval
-        if (approved && !active) return 'destructive'; // Deactivated
-        if (!approved && active) return 'destructive'; // Rejected
-        return 'outline';
+    const getBadgeVariant = (active: boolean): "default" | "secondary" | "destructive" | "outline" => {
+        if (active) return 'default';
+        return 'secondary';
     }
 
-    const getStatusText = (approved: boolean, active: boolean) => {
-        if (approved && active) return 'Approved';
-        if (!approved && !active) return 'Pending Approval';
-        if (approved && !active) return 'Deactivated';
-        if (!approved && active) return 'Rejected'; // This state happens when rejected
-        return 'Unknown';
+    const getStatusText = (active: boolean) => {
+        if (active) return 'Active';
+        return 'Inactive';
     }
 
-    const handleApproval = async (companyId: string, approve: boolean) => {
+    const handleToggleActive = async (companyId: string, currentActive: boolean) => {
         if (!firestore) return;
         const companyDocRef = doc(firestore, "companies", companyId);
-        const actionText = approve ? 'Approving' : 'Rejecting';
-        const actionDoneText = approve ? 'Approved' : 'Rejected';
+        const actionText = currentActive ? 'Deactivating' : 'Activating';
+        const actionDoneText = currentActive ? 'Deactivated' : 'Activated';
 
         toast({ title: `${actionText} company...` });
 
         try {
-            // When rejecting, we set approved to false and active to true to signify rejection.
-            // When approving, both become true.
             await updateDoc(companyDocRef, {
-                approved: approve,
-                active: approve ? true : true, // A rejected company is marked as active=true, approved=false
+                active: !currentActive,
             });
             toast({ title: `Company ${actionDoneText}` });
         } catch (error: any) {
@@ -77,35 +68,13 @@ export default function AdminCustomersPage() {
             });
         }
     };
-    
-    const handleDeactivation = async (companyId: string, deactivate: boolean) => {
-        if (!firestore) return;
-        const companyDocRef = doc(firestore, "companies", companyId);
-        const actionText = deactivate ? 'Deactivating' : 'Activating';
-        const actionDoneText = deactivate ? 'Deactivated' : 'Activated';
-        
-        toast({ title: `${actionText} company...`});
-
-        try {
-            await updateDoc(companyDocRef, { active: !deactivate });
-            toast({ title: `Company ${actionDoneText}` });
-        } catch(error: any) {
-             console.error(`Error ${actionText.toLowerCase()} company:`, error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: `Could not update company status. ${error.message}`
-            });
-        }
-    }
-
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Customers</CardTitle>
         <CardDescription>
-          Manage your B2B customers and their approval status.
+          Manage your B2B customers and their account status.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -113,7 +82,8 @@ export default function AdminCustomersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Company</TableHead>
-              <TableHead>Contact Name</TableHead>
+              <TableHead>Organization Number</TableHead>
+              <TableHead>Contact Email</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden md:table-cell">Registered</TableHead>
               <TableHead>
@@ -122,14 +92,15 @@ export default function AdminCustomersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <TableRow><TableCell colSpan={5}>Loading customers...</TableCell></TableRow>}
-            {!isLoading && companies?.length === 0 && <TableRow><TableCell colSpan={5}>No customers found.</TableCell></TableRow>}
+            {isLoading && <TableRow><TableCell colSpan={6}>Loading customers...</TableCell></TableRow>}
+            {!isLoading && companies?.length === 0 && <TableRow><TableCell colSpan={6}>No customers found.</TableCell></TableRow>}
             {companies?.map((company) => (
               <TableRow key={company.id}>
                 <TableCell className="font-medium">{company.name}</TableCell>
-                <TableCell>{`${company.contactPerson.firstName} ${company.contactPerson.lastName}`}</TableCell>
+                <TableCell>{company.orgNumber || 'N/A'}</TableCell>
+                <TableCell>{company.contactEmail || 'N/A'}</TableCell>
                 <TableCell>
-                  <Badge variant={getBadgeVariant(company.approved, company.active)}>{getStatusText(company.approved, company.active)}</Badge>
+                  <Badge variant={getBadgeVariant(company.active)}>{getStatusText(company.active)}</Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                     {company.registeredAt?.toDate().toLocaleDateString() || 'N/A'}
@@ -144,25 +115,12 @@ export default function AdminCustomersPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      {/* Show Approve/Reject only if it's a new, pending application */}
-                      {!company.approved && !company.active && (
-                        <>
-                            <DropdownMenuItem onClick={() => handleApproval(company.id, true)}>
-                                Approve
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleApproval(company.id, false)} className="text-destructive">
-                                Reject
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                        </>
-                      )}
-                       {/* Show Deactivate/Activate only if company is approved */}
-                       {company.approved && (
-                         <DropdownMenuItem onClick={() => handleDeactivation(company.id, company.active)} className={company.active ? 'text-destructive' : ''}>
-                            {company.active ? 'Deactivate' : 'Activate'}
-                        </DropdownMenuItem>
-                       )}
+                      <DropdownMenuItem onClick={() => handleToggleActive(company.id, company.active)} className={company.active ? 'text-destructive' : ''}>
+                        {company.active ? 'Deactivate' : 'Activate'}
+                      </DropdownMenuItem>
                       <DropdownMenuItem>View Details</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

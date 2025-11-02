@@ -129,11 +129,11 @@ export default function AdminProductsPage() {
                 {products?.map((product) => (
                     <TableRow key={product.id}>
                         <TableCell className="hidden sm:table-cell">
-                        {product.images?.url && <Image
+                        {(product.images?.main || product.fpakk?.image) && <Image
                             alt={product.name}
                             className="aspect-square rounded-md object-cover"
                             height="64"
-                            src={product.images.url}
+                            src={product.images?.main || product.fpakk?.image || ''}
                             width="64"
                         />}
                         </TableCell>
@@ -141,8 +141,8 @@ export default function AdminProductsPage() {
                         <TableCell>
                         <Badge variant="outline">{product.metadata?.status || 'Active'}</Badge>
                         </TableCell>
-                        <TableCell>{product.pricing?.basePrice?.toFixed(2) || 'N/A'} kr</TableCell>
-                        <TableCell className="hidden md:table-cell">{product.stock?.quantity ?? 'N/A'}</TableCell>
+                        <TableCell>{product.pricing?.standard?.fpakk?.toFixed(2) || 'N/A'} kr</TableCell>
+                        <TableCell className="hidden md:table-cell">{product.inventory?.totalUnits ?? 'N/A'}</TableCell>
                         <TableCell>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
