@@ -113,7 +113,7 @@ const SectionCard = ({ title, description, children, className }: { title: strin
             {children}
         </CardContent>
     </Card>
-)
+);
 
 const DimensionsInput = ({ control, namePrefix }: { control: any, namePrefix: `fpakk.dimensions` | `mellompakk.dimensions` | `toppakk.dimensions` }) => (
     <div className="grid grid-cols-3 gap-4">
