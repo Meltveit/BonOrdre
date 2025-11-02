@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import * as LabelPrimitive from "@radix-ui/react-label"
+import type * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
 import {
   Controller,
@@ -14,7 +14,13 @@ import {
 
 import { cn } from "@/lib/utils"
 
-const Form = FormProvider
+const Form = React.forwardRef<
+  React.ElementRef<typeof FormProvider>,
+  React.ComponentPropsWithoutRef<typeof FormProvider>
+>((props, ref) => {
+  return <FormProvider {...props} />
+})
+Form.displayName = "Form"
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
