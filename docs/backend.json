@@ -203,7 +203,7 @@
         },
         "sku": {
           "type": "string",
-          "description": "The product's SKU (Stock Keeping Unit)."
+          "description": "The product's base unit SKU (Stock Keeping Unit)."
         },
         "eanNumber": {
           "type": "string",
@@ -238,15 +238,50 @@
         },
         "pricing": {
           "type": "string",
-          "description": "A JSON object representing the product's pricing information."
+          "description": "A JSON object representing the product's pricing information. This is now DEPRECATED. Use the pricing within the packaging hierarchy instead."
         },
         "packaging": {
-          "type": "string",
-          "description": "A JSON object representing the product's packaging details."
+          "type": "object",
+          "description": "Defines the packaging hierarchy for the product, from base unit to outer case.",
+          "properties": {
+            "baseUnit": {
+              "type": "object",
+              "description": "The smallest sellable unit of the product (e.g., bottle, can).",
+              "properties": {
+                "name": { "type": "string", "description": "Name of the base unit (e.g., 'Bottle', 'Can')." },
+                "sku": { "type": "string", "description": "SKU for the base unit. This should match the root SKU." },
+                "price": { "type": "number", "description": "Price for a single base unit." }
+              },
+              "required": ["name", "sku", "price"]
+            },
+            "innerPack": {
+              "type": "object",
+              "description": "The intermediate packaging level (e.g., 4-pack, 6-pack). Nullable.",
+              "properties": {
+                "name": { "type": "string", "description": "Name of the inner pack (e.g., '4-pack')." },
+                "sku": { "type": "string", "description": "SKU for the inner pack." },
+                "price": { "type": "number", "description": "Price for one inner pack." },
+                "units": { "type": "number", "description": "Number of base units in this pack." }
+              },
+              "required": ["name", "sku", "price", "units"]
+            },
+            "outerCase": {
+              "type": "object",
+              "description": "The largest packaging level, the case (e.g., 'Case of 24'). Nullable.",
+              "properties": {
+                "name": { "type": "string", "description": "Name of the outer case (e.g., 'Case')." },
+                "sku": { "type": "string", "description": "SKU for the outer case." },
+                "price": { "type": "number", "description": "Price for one outer case." },
+                "units": { "type": "number", "description": "Number of inner packs OR base units in this case. Depends on the structure." }
+              },
+              "required": ["name", "sku", "price", "units"]
+            }
+          },
+          "required": ["baseUnit"]
         },
         "stock": {
           "type": "string",
-          "description": "A JSON object representing the product's stock levels."
+          "description": "A JSON object representing the product's stock levels in terms of the base unit."
         },
         "metadata": {
           "type": "string",
@@ -274,7 +309,6 @@
         "productType",
         "manufacturer",
         "variants",
-        "pricing",
         "packaging",
         "stock",
         "metadata",

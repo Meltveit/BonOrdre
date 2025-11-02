@@ -1,5 +1,12 @@
 import type { Timestamp } from "firebase/firestore";
 
+export type PackagingUnit = {
+  name: string;
+  sku: string;
+  price: number;
+  units: number; // Number of sub-units. For baseUnit, this is 1. For innerPack, it's units of baseUnit. For outerCase, it's units of innerPack.
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -9,7 +16,7 @@ export type Product = {
     url: string;
     alt: string;
   };
-  sku: string;
+  sku: string; // Base SKU
   eanNumber: string;
   country: string;
   size: string;
@@ -17,13 +24,18 @@ export type Product = {
   productType: string;
   manufacturer: string;
   variants: any[];
+  /** @deprecated */
   pricing: {
     basePrice: number;
     currency: string;
   };
-  packaging: any;
+  packaging: {
+    baseUnit: Omit<PackagingUnit, 'units'> & { price: number; }; // Base unit doesn't have a 'units' count in the same way.
+    innerPack?: PackagingUnit;
+    outerCase?: PackagingUnit;
+  };
   stock: {
-    quantity: number;
+    quantity: number; // Total quantity in base units
     lowStockThreshold: number;
   };
   metadata: {
@@ -96,3 +108,4 @@ export type NavItem = {
   icon: React.ElementType;
   active?: boolean;
 };
+
