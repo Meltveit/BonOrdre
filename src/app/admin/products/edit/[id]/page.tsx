@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { FormProvider, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, PackagingStructure, PackagingType, PalletType, Dimensions } from '@/lib/definitions';
@@ -212,176 +212,178 @@ export default function EditProductPage() {
   if (!isNewProduct && !product) return <p>Product not found.</p>;
 
   return (
-    <FormProvider {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-8">
-        <div className="flex items-center justify-between">
-            <div>
-                <h1 className="text-3xl font-bold font-headline">{isNewProduct ? 'Create New Product' : 'Edit Product'}</h1>
-                <p className="text-muted-foreground">Manage product details, packaging, inventory, and pricing.</p>
-            </div>
-            <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>Cancel</Button>
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Saving...' : 'Save Product'}
-                </Button>
-            </div>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-8 items-start">
-          <div className="lg:col-span-2 grid gap-8">
-                <SectionCard title="Product Information">
-                    <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                     <div className="grid md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="category" render={({ field }) => (<FormItem><FormLabel>Category</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>Product Type</FormLabel><FormControl><Input placeholder='e.g., Beer, Wine, Spirit' {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel>Country</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="producer" render={({ field }) => (<FormItem><FormLabel>Producer</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="alcoholPercent" render={({ field }) => (<FormItem><FormLabel>Alcohol %</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>)} />
+    <div>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-8">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold font-headline">{isNewProduct ? 'Create New Product' : 'Edit Product'}</h1>
+                        <p className="text-muted-foreground">Manage product details, packaging, inventory, and pricing.</p>
                     </div>
-                </SectionCard>
-                
-                <SectionCard title="Packaging Hierarchy" description="Define how this product is packaged and sold.">
-                     <FormField
-                        control={form.control}
-                        name="structure"
-                        render={({ field }) => (
-                            <FormItem className="space-y-3">
-                            <FormLabel>Product Structure</FormLabel>
-                            <FormControl>
-                                <RadioGroup
-                                onValueChange={(value) => {
-                                    field.onChange(value);
-                                    if (value === 'hierarchical' && !form.getValues('mellompakk')) {
-                                        form.setValue('mellompakk', { type: 'homogeneous', name: '', quantityPerBox: 24, ean: '', pricePerBox: 0, weight: 0, dimensions: { length: 0, width: 0, height: 0 } });
-                                        form.setValue('toppakk', { type: 'homogeneous', palletType: 'full', name: '', boxesPerPallet: 30, totalUnits: 0, pricePerPallet: 0, weight: 0, dimensions: { length: 0, width: 0, height: 0 } });
-                                    }
-                                }}
-                                defaultValue={field.value}
-                                className="flex flex-col space-y-1"
-                                >
-                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                    <FormControl><RadioGroupItem value="simple" /></FormControl>
-                                    <FormLabel className="font-normal">Simple Product (Sold per unit)</FormLabel>
-                                </FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                    <FormControl><RadioGroupItem value="hierarchical" /></FormControl>
-                                    <FormLabel className="font-normal">Hierarchical Product (e.g., Bottle → Case → Pallet)</FormLabel>
-                                </FormItem>
-                                </RadioGroup>
-                            </FormControl>
+                    <div className="flex gap-2">
+                        <Button type="button" variant="outline" onClick={() => router.push('/admin/products')}>Cancel</Button>
+                        <Button type="submit" disabled={form.formState.isSubmitting}>
+                        {form.formState.isSubmitting ? 'Saving...' : 'Save Product'}
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="grid lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-2 grid gap-8">
+                        <SectionCard title="Product Information">
+                            <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="category" render={({ field }) => (<FormItem><FormLabel>Category</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>Product Type</FormLabel><FormControl><Input placeholder='e.g., Beer, Wine, Spirit' {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel>Country</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="producer" render={({ field }) => (<FormItem><FormLabel>Producer</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="alcoholPercent" render={({ field }) => (<FormItem><FormLabel>Alcohol %</FormLabel><FormControl><Input type="number" step="0.1" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </div>
+                        </SectionCard>
+                        
+                        <SectionCard title="Packaging Hierarchy" description="Define how this product is packaged and sold.">
+                            <FormField
+                                control={form.control}
+                                name="structure"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                    <FormLabel>Product Structure</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={(value) => {
+                                            field.onChange(value);
+                                            if (value === 'hierarchical' && !form.getValues('mellompakk')) {
+                                                form.setValue('mellompakk', { type: 'homogeneous', name: '', quantityPerBox: 24, ean: '', pricePerBox: 0, weight: 0, dimensions: { length: 0, width: 0, height: 0 } });
+                                                form.setValue('toppakk', { type: 'homogeneous', palletType: 'full', name: '', boxesPerPallet: 30, totalUnits: 0, pricePerPallet: 0, weight: 0, dimensions: { length: 0, width: 0, height: 0 } });
+                                            }
+                                        }}
+                                        defaultValue={field.value}
+                                        className="flex flex-col space-y-1"
+                                        >
+                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                            <FormControl><RadioGroupItem value="simple" /></FormControl>
+                                            <FormLabel className="font-normal">Simple Product (Sold per unit)</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                            <FormControl><RadioGroupItem value="hierarchical" /></FormControl>
+                                            <FormLabel className="font-normal">Hierarchical Product (e.g., Bottle → Case → Pallet)</FormLabel>
+                                        </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+
+                        </SectionCard>
+
+                        <div className="grid gap-8">
+                            <SectionCard title="Fpakk (Base Unit)" description="The smallest individual unit of the product (e.g., one bottle, one can).">
+                                <FormField control={form.control} name="fpakk.name" render={({ field }) => (<FormItem><FormLabel>Unit Name</FormLabel><FormControl><Input placeholder='e.g., Bottle, Can' {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <FormField control={form.control} name="fpakk.size" render={({ field }) => (<FormItem><FormLabel>Size</FormLabel><FormControl><Input placeholder='e.g., 0.33L' {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="fpakk.variant" render={({ field }) => (<FormItem><FormLabel>Variant</FormLabel><FormControl><Input placeholder='e.g., IPA, Lager' {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="fpakk.sku" render={({ field }) => (<FormItem><FormLabel>SKU</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="fpakk.ean" render={({ field }) => (<FormItem><FormLabel>EAN</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="fpakk.weight" render={({ field }) => (<FormItem><FormLabel>Weight (g)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="fpakk.deposit" render={({ field }) => (<FormItem><FormLabel>Deposit (kr)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                </div>
+                                <DimensionsInput control={form.control} namePrefix="fpakk.dimensions" />
+                            </SectionCard>
+                            
+                            {structure === 'hierarchical' && (
+                                <>
+                                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                                        <ChevronsRight className="h-8 w-8" />
+                                    </div>
+                                    <SectionCard title="Mellompakk (Inner Pack)" description="A case or box containing multiple base units (e.g., a 24-pack of bottles).">
+                                        <FormField control={form.control} name="mellompakk.name" render={({ field }) => (<FormItem><FormLabel>Pack Name</FormLabel><FormControl><Input placeholder="e.g., Case 24x0.33L" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="mellompakk.quantityPerBox" render={({ field }) => (<FormItem><FormLabel>Units per Pack</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="mellompakk.ean" render={({ field }) => (<FormItem><FormLabel>EAN</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="mellompakk.weight" render={({ field }) => (<FormItem><FormLabel>Weight (g)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+                                        <DimensionsInput control={form.control} namePrefix="mellompakk.dimensions" />
+                                    </SectionCard>
+
+                                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                                        <ChevronsRight className="h-8 w-8" />
+                                    </div>
+
+                                    <SectionCard title="Toppakk (Outer Case / Pallet)" description="The largest packaging unit, typically a pallet.">
+                                        <FormField control={form.control} name="toppakk.name" render={({ field }) => (<FormItem><FormLabel>Pallet Name</FormLabel><FormControl><Input placeholder="e.g., Full Pallet" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="toppakk.boxesPerPallet" render={({ field }) => (<FormItem><FormLabel>Packs per Pallet</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="toppakk.palletType" render={({ field }) => (
+                                                <FormItem><FormLabel>Pallet Type</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="full">Full</SelectItem>
+                                                        <SelectItem value="half">Half</SelectItem>
+                                                        <SelectItem value="quarter">Quarter</SelectItem>
+                                                        <SelectItem value="custom">Custom</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="toppakk.ean" render={({ field }) => (<FormItem><FormLabel>EAN</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="toppakk.weight" render={({ field }) => (<FormItem><FormLabel>Weight (kg)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+                                        <DimensionsInput control={form.control} namePrefix="toppakk.dimensions" />
+                                    </SectionCard>
+                                </>
+                            )}
+                        </div>
+                </div>
+                <div className="lg:col-span-1 grid gap-8">
+                    <SectionCard title="Status">
+                        <FormField control={form.control} name="metadata.status" render={({ field }) => (
+                            <FormItem>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="Active">Active</SelectItem>
+                                    <SelectItem value="Draft">Draft</SelectItem>
+                                    <SelectItem value="Archived">Archived</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                             </FormItem>
+                        )} />
+                    </SectionCard>
+
+                    <SectionCard title="Inventory" description="Current stock levels for each packaging unit.">
+                        <FormField control={form.control} name="inventory.fpakk" render={({ field }) => (<FormItem><FormLabel>Fpakk (units)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        {structure === 'hierarchical' && (
+                            <>
+                                <FormField control={form.control} name="inventory.mellompakk" render={({ field }) => (<FormItem><FormLabel>Mellompakk (packs)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="inventory.toppakk" render={({ field }) => (<FormItem><FormLabel>Toppakk (pallets)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            </>
                         )}
-                        />
-
-                </SectionCard>
-
-                <div className="grid gap-8">
-                     <SectionCard title="Fpakk (Base Unit)" description="The smallest individual unit of the product (e.g., one bottle, one can).">
-                        <FormField control={form.control} name="fpakk.name" render={({ field }) => (<FormItem><FormLabel>Unit Name</FormLabel><FormControl><Input placeholder='e.g., Bottle, Can' {...field} /></FormControl><FormMessage /></FormItem>)} />
-                         <div className="grid md:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="fpakk.size" render={({ field }) => (<FormItem><FormLabel>Size</FormLabel><FormControl><Input placeholder='e.g., 0.33L' {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="fpakk.variant" render={({ field }) => (<FormItem><FormLabel>Variant</FormLabel><FormControl><Input placeholder='e.g., IPA, Lager' {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="fpakk.sku" render={({ field }) => (<FormItem><FormLabel>SKU</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="fpakk.ean" render={({ field }) => (<FormItem><FormLabel>EAN</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="fpakk.weight" render={({ field }) => (<FormItem><FormLabel>Weight (g)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="fpakk.deposit" render={({ field }) => (<FormItem><FormLabel>Deposit (kr)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                         </div>
-                         <DimensionsInput control={form.control} namePrefix="fpakk.dimensions" />
+                        <hr/>
+                        <div>
+                            <Label className="text-muted-foreground">Total Stock (Units)</Label>
+                            <p className="text-2xl font-bold">{form.getValues('inventory.totalUnits') || 0}</p>
+                        </div>
                     </SectionCard>
                     
-                    {structure === 'hierarchical' && (
-                        <>
-                            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                                <ChevronsRight className="h-8 w-8" />
-                            </div>
-                            <SectionCard title="Mellompakk (Inner Pack)" description="A case or box containing multiple base units (e.g., a 24-pack of bottles).">
-                                <FormField control={form.control} name="mellompakk.name" render={({ field }) => (<FormItem><FormLabel>Pack Name</FormLabel><FormControl><Input placeholder="e.g., Case 24x0.33L" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <div className="grid md:grid-cols-2 gap-4">
-                                     <FormField control={form.control} name="mellompakk.quantityPerBox" render={({ field }) => (<FormItem><FormLabel>Units per Pack</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                     <FormField control={form.control} name="mellompakk.ean" render={({ field }) => (<FormItem><FormLabel>EAN</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                     <FormField control={form.control} name="mellompakk.weight" render={({ field }) => (<FormItem><FormLabel>Weight (g)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                </div>
-                                <DimensionsInput control={form.control} namePrefix="mellompakk.dimensions" />
-                            </SectionCard>
+                    <SectionCard title="Pricing (NOK)" description="Standard prices for each packaging unit.">
+                        <FormField control={form.control} name="pricing.standard.fpakk" render={({ field }) => (<FormItem><FormLabel>Fpakk Price (per unit)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        {structure === 'hierarchical' && (
+                            <>
+                                <FormField control={form.control} name="pricing.standard.mellompakk" render={({ field }) => (<FormItem><FormLabel>Mellompakk Price (per pack)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="pricing.standard.toppakk" render={({ field }) => (<FormItem><FormLabel>Toppakk Price (per pallet)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormMessage /></FormItem>)} />
+                            </>
+                        )}
+                    </SectionCard>
 
-                             <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                                <ChevronsRight className="h-8 w-8" />
-                            </div>
-
-                            <SectionCard title="Toppakk (Outer Case / Pallet)" description="The largest packaging unit, typically a pallet.">
-                                <FormField control={form.control} name="toppakk.name" render={({ field }) => (<FormItem><FormLabel>Pallet Name</FormLabel><FormControl><Input placeholder="e.g., Full Pallet" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <div className="grid md:grid-cols-2 gap-4">
-                                     <FormField control={form.control} name="toppakk.boxesPerPallet" render={({ field }) => (<FormItem><FormLabel>Packs per Pallet</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                      <FormField control={form.control} name="toppakk.palletType" render={({ field }) => (
-                                        <FormItem><FormLabel>Pallet Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="full">Full</SelectItem>
-                                                <SelectItem value="half">Half</SelectItem>
-                                                <SelectItem value="quarter">Quarter</SelectItem>
-                                                <SelectItem value="custom">Custom</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                        </FormItem>
-                                     )} />
-                                     <FormField control={form.control} name="toppakk.ean" render={({ field }) => (<FormItem><FormLabel>EAN</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                     <FormField control={form.control} name="toppakk.weight" render={({ field }) => (<FormItem><FormLabel>Weight (kg)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                </div>
-                                 <DimensionsInput control={form.control} namePrefix="toppakk.dimensions" />
-                            </SectionCard>
-                        </>
-                    )}
                 </div>
-          </div>
-          <div className="lg:col-span-1 grid gap-8">
-            <SectionCard title="Status">
-                 <FormField control={form.control} name="metadata.status" render={({ field }) => (
-                    <FormItem>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            <SelectItem value="Active">Active</SelectItem>
-                            <SelectItem value="Draft">Draft</SelectItem>
-                            <SelectItem value="Archived">Archived</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                 )} />
-            </SectionCard>
-
-            <SectionCard title="Inventory" description="Current stock levels for each packaging unit.">
-                <FormField control={form.control} name="inventory.fpakk" render={({ field }) => (<FormItem><FormLabel>Fpakk (units)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                 {structure === 'hierarchical' && (
-                    <>
-                        <FormField control={form.control} name="inventory.mellompakk" render={({ field }) => (<FormItem><FormLabel>Mellompakk (packs)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="inventory.toppakk" render={({ field }) => (<FormItem><FormLabel>Toppakk (pallets)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    </>
-                 )}
-                 <hr/>
-                 <div>
-                    <Label className="text-muted-foreground">Total Stock (Units)</Label>
-                    <p className="text-2xl font-bold">{form.getValues('inventory.totalUnits') || 0}</p>
-                 </div>
-            </SectionCard>
-            
-            <SectionCard title="Pricing (NOK)" description="Standard prices for each packaging unit.">
-                <FormField control={form.control} name="pricing.standard.fpakk" render={({ field }) => (<FormItem><FormLabel>Fpakk Price (per unit)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                {structure === 'hierarchical' && (
-                    <>
-                        <FormField control={form.control} name="pricing.standard.mellompakk" render={({ field }) => (<FormItem><FormLabel>Mellompakk Price (per pack)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="pricing.standard.toppakk" render={({ field }) => (<FormItem><FormLabel>Toppakk Price (per pallet)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormMessage /></FormItem>)} />
-                    </>
-                )}
-            </SectionCard>
-
-          </div>
-        </div>
-      </form>
-    </FormProvider>
+                </div>
+            </form>
+        </Form>
+    </div>
   );
 }
