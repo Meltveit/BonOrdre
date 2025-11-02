@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDoc, collection, addDoc } from "firebase/firestore";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -217,7 +216,7 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="container flex h-screen w-screen flex-col items-center justify-center">
+        <div className="container flex min-h-screen w-screen flex-col items-center py-8">
             <Card className="w-full max-w-4xl">
                 <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-4"><Logo /></div>
@@ -249,7 +248,7 @@ export default function SignupPage() {
                                     control={form.control}
                                     name="useVisitingAsBilling"
                                     render={({ field }) => (
-                                        <div className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                             <FormControl>
                                                 <Checkbox
                                                     checked={field.value}
@@ -257,11 +256,11 @@ export default function SignupPage() {
                                                 />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel>
+                                                <FormLabel className="font-normal">
                                                     Billing address is the same as visiting address
                                                 </FormLabel>
                                             </div>
-                                        </div>
+                                        </FormItem>
                                     )}
                                 />
 
@@ -280,19 +279,19 @@ export default function SignupPage() {
                                     control={form.control}
                                     name="useBillingAsDelivery"
                                     render={({ field }) => (
-                                        <div className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                             <FormControl>
                                                 <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
                                                 />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
-                                                <FormLabel>
+                                                <FormLabel className="font-normal">
                                                     Delivery address is the same as billing address
                                                 </FormLabel>
                                             </div>
-                                        </div>
+                                        </FormItem>
                                     )}
                                 />
 
@@ -330,32 +329,49 @@ export default function SignupPage() {
                                 control={form.control}
                                 name="acceptTerms"
                                 render={({ field }) => (
-                                    <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                         <FormControl>
                                             <Checkbox
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
-                                                id="terms"
                                             />
                                         </FormControl>
                                         <div className="space-y-1 leading-none">
-                                            <Label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            I accept the terms and conditions
-                                            </Label>
+                                            <FormLabel className="font-normal">
+                                                I accept the terms and conditions
+                                            </FormLabel>
                                             <FormDescription>
-                                            You agree to our <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link> and <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
+                                                You agree to our{" "}
+                                                <Link href="/terms" className="underline hover:text-primary">
+                                                    Terms of Service
+                                                </Link>
+                                                {" "}and{" "}
+                                                <Link href="/privacy" className="underline hover:text-primary">
+                                                    Privacy Policy
+                                                </Link>
+                                                .
                                             </FormDescription>
                                             <FormMessage />
                                         </div>
-                                    </div>
+                                    </FormItem>
                                 )}
                             />
 
-
-                            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}</Button>
+                            <Button 
+                                type="submit" 
+                                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" 
+                                disabled={form.formState.isSubmitting}
+                            >
+                                {form.formState.isSubmitting ? 'Creating Account...' : 'Create an account'}
+                            </Button>
                         </form>
                     </Form>
-                    <div className="mt-4 text-center text-sm">Already have an account? <Link href="/" className="underline">Sign in</Link></div>
+                    <div className="mt-4 text-center text-sm">
+                        Already have an account?{" "}
+                        <Link href="/" className="underline">
+                            Sign in
+                        </Link>
+                    </div>
                 </CardContent>
             </Card>
         </div>
