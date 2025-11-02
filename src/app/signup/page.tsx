@@ -62,7 +62,7 @@ const signupSchema = z.object({
         if (!data.billingAddressZip) ctx.addIssue({ code: "custom", path: ["billingAddressZip"], message: "Postal code is required." });
         if (!data.billingAddressCity) ctx.addIssue({ code: "custom", path: ["billingAddressCity"], message: "City is required." });
     }
-    if (!data.useBillingAsDelivery && !data.useVisitingAsBilling) { 
+    if (!data.useBillingAsDelivery) { 
         if (!data.deliveryAddressStreet) ctx.addIssue({ code: "custom", path: ["deliveryAddressStreet"], message: "Delivery address is required." });
         if (!data.deliveryAddressZip) ctx.addIssue({ code: "custom", path: ["deliveryAddressZip"], message: "Postal code is required." });
         if (!data.deliveryAddressCity) ctx.addIssue({ code: "custom", path: ["deliveryAddressCity"], message: "City is required." });
@@ -107,28 +107,31 @@ export default function SignupPage() {
 
     const useVisitingAsBilling = form.watch("useVisitingAsBilling");
     const useBillingAsDelivery = form.watch("useBillingAsDelivery");
+    const billingStreet = form.watch("billingAddressStreet");
+    const visitingStreet = form.watch("visitingAddressStreet");
+
 
     useEffect(() => {
         if (useVisitingAsBilling) {
-            const visitingStreet = form.getValues("visitingAddressStreet");
-            const visitingZip = form.getValues("visitingAddressZip");
-            const visitingCity = form.getValues("visitingAddressCity");
-            form.setValue("billingAddressStreet", visitingStreet);
-            form.setValue("billingAddressZip", visitingZip);
-            form.setValue("billingAddressCity", visitingCity);
+            const visitingStreetVal = form.getValues("visitingAddressStreet");
+            const visitingZipVal = form.getValues("visitingAddressZip");
+            const visitingCityVal = form.getValues("visitingAddressCity");
+            form.setValue("billingAddressStreet", visitingStreetVal);
+            form.setValue("billingAddressZip", visitingZipVal);
+            form.setValue("billingAddressCity", visitingCityVal);
         }
-    }, [useVisitingAsBilling, form]);
+    }, [useVisitingAsBilling, form, form.getValues("visitingAddressStreet"), form.getValues("visitingAddressZip"), form.getValues("visitingAddressCity")]);
 
     useEffect(() => {
         if (useBillingAsDelivery) {
-            const billingStreet = form.getValues("billingAddressStreet");
-            const billingZip = form.getValues("billingAddressZip");
-            const billingCity = form.getValues("billingAddressCity");
-            form.setValue("deliveryAddressStreet", billingStreet);
-            form.setValue("deliveryAddressZip", billingZip);
-            form.setValue("deliveryAddressCity", billingCity);
+            const billingStreetVal = form.getValues("billingAddressStreet");
+            const billingZipVal = form.getValues("billingAddressZip");
+            const billingCityVal = form.getValues("billingAddressCity");
+            form.setValue("deliveryAddressStreet", billingStreetVal);
+            form.setValue("deliveryAddressZip", billingZipVal);
+            form.setValue("deliveryAddressCity", billingCityVal);
         }
-    }, [useBillingAsDelivery, form]);
+    }, [useBillingAsDelivery, form, billingStreet, form.getValues("billingAddressZip"), form.getValues("billingAddressCity")]);
 
     useEffect(() => {
         if (!isUserLoading && user) {
@@ -142,42 +145,18 @@ export default function SignupPage() {
             return;
         }
 
+        toast({ title: "Submitting application...", description: "Please wait." });
+
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, data.contactEmail, data.password);
             const uid = userCredential.user.uid;
-
-            const companyRef = await addDoc(collection(firestore, 'companies'), {
-                name: data.companyName,
-                orgNumber: data.orgNumber,
-                companyType: data.companyType, 
-                visitingAddress: { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity },
-                billingAddress: data.useVisitingAsBilling ? 
-                    { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity } :
-                    { street: data.billingAddressStreet, zip: data.billingAddressZip, city: data.billingAddressCity },
-                shippingAddresses: [ data.useBillingAsDelivery ?
-                    (data.useVisitingAsBilling ? 
-                        { street: data.visitingAddressStreet, zip: data.visitingAddressZip, city: data.visitingAddressCity } : 
-                        { street: data.billingAddressStreet, zip: data.billingAddressZip, city: data.billingAddressCity }
-                    ) :
-                    { street: data.deliveryAddressStreet, zip: data.deliveryAddressZip, city: data.deliveryAddressCity }
-                ],
-                contactPerson: { firstName: data.firstName, lastName: data.lastName },
-                contactEmail: data.contactEmail,
-                contactPhone: data.contactPhone,
-                active: false,
-                approved: false,
-                registeredAt: serverTimestamp(),
-                approvedAt: null,
-                approvedBy: null,
-                adminNotes: data.comments || "",
-                pricing: {},
-            });
-
-            await setDoc(doc(firestore, 'users', uid), {
+            
+            // Create user document with 'pending' status
+             await setDoc(doc(firestore, 'users', uid), {
                 id: uid,
                 email: data.contactEmail,
-                role: 'customer',
-                companyId: companyRef.id, 
+                role: 'pending', // Set role to pending
+                companyId: null, 
                 firstName: data.firstName,
                 lastName: data.lastName,
                 phone: data.contactPhone,
@@ -189,27 +168,54 @@ export default function SignupPage() {
                 permissions: {},
             });
 
-            await addDoc(collection(firestore, 'notifications'), {
-                type: 'new_signup',
-                title: 'New Company Registration',
-                message: `${data.companyName} has registered and is pending approval.`,
-                companyId: companyRef.id,
+            // Create an application in 'companyApplications' collection
+            const applicationRef = doc(firestore, "companyApplications", uid);
+            await setDoc(applicationRef, {
                 companyName: data.companyName,
-                read: false,
-                createdAt: serverTimestamp(),
+                orgNumber: data.orgNumber,
+                companyType: data.companyType,
+                contactEmail: data.contactEmail,
+                contactPhone: data.contactPhone,
+                contactPerson: {
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                },
+                visitingAddress: {
+                    street: data.visitingAddressStreet,
+                    zip: data.visitingAddressZip,
+                    city: data.visitingAddressCity,
+                },
+                billingAddress: {
+                    street: data.billingAddressStreet || data.visitingAddressStreet,
+                    zip: data.billingAddressZip || data.visitingAddressZip,
+                    city: data.billingAddressCity || data.visitingAddressCity,
+                },
+                deliveryAddress: {
+                    street: data.deliveryAddressStreet || data.billingAddressStreet || data.visitingAddressStreet,
+                    zip: data.deliveryAddressZip || data.billingAddressZip || data.visitingAddressZip,
+                    city: data.deliveryAddressCity || data.billingAddressCity || data.visitingAddressCity,
+                },
+                comments: data.comments || "",
+                submittedAt: serverTimestamp(),
+                status: "pending",
+                userId: uid,
             });
 
             toast({
                 title: "Application Submitted",
-                description: "Your application is pending review. You will be redirected.",
+                description: "Your application is pending review. You will be redirected to the login page.",
             });
 
             router.push('/');
         } catch (error: any) {
             console.error('Signup error:', error);
+            let errorMessage = error.message || "Something went wrong during registration.";
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage = "This email is already in use. Please try to log in.";
+            }
             toast({
                 title: "Registration Failed",
-                description: error.message || "Something went wrong during registration.",
+                description: errorMessage,
                 variant: "destructive",
             });
         }
@@ -295,7 +301,7 @@ export default function SignupPage() {
                                     )}
                                 />
 
-                                {!useBillingAsDelivery && !useVisitingAsBilling && (
+                                {!useBillingAsDelivery && (
                                     <div className="space-y-4 pl-4 border-l">
                                         <h4 className="font-medium text-md">Delivery Address</h4>
                                         <FormField control={form.control} name="deliveryAddressStreet" render={({ field }) => (<FormItem><FormLabel>Street Address</FormLabel><FormControl><Input placeholder="Delivery Street 1" {...field} /></FormControl><FormMessage /></FormItem>)} />

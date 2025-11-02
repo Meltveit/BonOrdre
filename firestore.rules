@@ -7,6 +7,7 @@
  * @dataStructure
  * - /users/{userId}: User profile data, where {userId} is the Firebase Auth UID.
  * - /companies/{companyId}: Company data.
+ * - /companyApplications/{applicationId}: Applications for new companies.
  * - /products/{productId}: Product data.
  * - /orders/{orderId}: Order data, with denormalized customer information.
  * - /stock-transactions/{transactionId}: Stock transaction history.
@@ -30,6 +31,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+  
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
     /**
      * @description Enforces user-level access control for user profiles.
@@ -41,10 +50,6 @@ service cloud.firestore {
      * @principle Enforces document ownership.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
         return isSignedIn() && request.auth.uid == userId;
       }
@@ -53,12 +58,32 @@ service cloud.firestore {
         return isOwner(userId) && resource.data.keys().hasAny(['id']);
       }
 
-      allow get: if isOwner(userId);
-      allow list: if false; // Listing users is not allowed.
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin(); // Only admins can list users
 
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+    
+    match /companyApplications/{applicationId} {
+      function isApplicationOwner() {
+        return isSignedIn() && request.auth.uid == applicationId;
+      }
+      
+      // User can read their own application
+      allow get: if isApplicationOwner();
+      
+      // User can create their own application
+      allow create: if isApplicationOwner() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.status == 'pending';
+      
+      // Admin can read and update any application
+      allow get, list, update: if isAdmin();
+      
+      // Nobody can delete applications
+      allow delete: if false;
     }
 
     /**
@@ -69,12 +94,8 @@ service cloud.firestore {
      * @principle Allows read-only access to company data for authenticated users, but requires additional ownership checks for writes.
      */
     match /companies/{companyId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+      allow create, update, delete: if isAdmin();
     }
 
     /**
@@ -85,12 +106,8 @@ service cloud.firestore {
      * @principle Public read, restricted write.
      */
     match /products/{productId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get, list: if true;
-      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+      allow create, update, delete: if isAdmin();
     }
 
     /**
@@ -101,11 +118,7 @@ service cloud.firestore {
      * @principle Requires authentication for all access.
      */
     match /orders/{orderId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if isSignedIn();
+      allow get, list: if isSignedIn(); // TODO: Add customer/company ownership rules
       allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
     }
 
@@ -117,12 +130,8 @@ service cloud.firestore {
      * @principle Requires authentication for all access.
      */
     match /stock-transactions/{transactionId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     /**
@@ -133,11 +142,7 @@ service cloud.firestore {
      * @principle Requires authentication for all access.
      */
     match /invoices/{invoiceId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if isSignedIn();
+      allow get, list: if isSignedIn(); // TODO: Add customer/company ownership rules
       allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
     }
 
@@ -149,12 +154,8 @@ service cloud.firestore {
      * @principle Requires authentication for all access.
      */
     match /notifications/{notificationId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     /**
@@ -165,12 +166,8 @@ service cloud.firestore {
      * @principle Requires authentication for all access.
      */
     match /messages/{messageId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+      allow get, list: if isSignedIn(); // TODO: Add ownership rules
+      allow create, update, delete: if isSignedIn(); // TODO: Add ownership rules
     }
 
     /**
@@ -181,12 +178,8 @@ service cloud.firestore {
      * @principle Requires authentication for all access.
      */
     match /monthly-reports/{reportId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     /**
@@ -197,12 +190,8 @@ service cloud.firestore {
      * @principle Requires authentication for all access.
      */
     match /stock-balances/{balanceId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
      /**
@@ -213,12 +202,8 @@ service cloud.firestore {
       * @principle Requires authentication for all access.
       */
     match /discount-codes/{codeId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn(); // TODO: Add role-based or ownership restrictions
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
   }
 }

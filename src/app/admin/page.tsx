@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   CreditCard,
   Users,
+  UserCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ import {
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, where, limit } from "firebase/firestore";
-import type { Order, Company } from "@/lib/definitions";
+import type { Order, Company, CompanyApplication } from "@/lib/definitions";
 import { useMemo, useState, useEffect } from "react";
 
 export default function AdminDashboardPage() {
@@ -62,6 +63,18 @@ export default function AdminDashboardPage() {
         [firestore]
     );
     const { data: companies } = useCollection<Company>(companiesQuery);
+    
+    // Fetch pending applications
+    const pendingApplicationsQuery = useMemoFirebase(() => 
+        firestore 
+            ? query(
+                collection(firestore, 'companyApplications'),
+                where('status', '==', 'pending')
+              )
+            : null, 
+        [firestore]
+    );
+    const { data: pendingApplications } = useCollection<CompanyApplication>(pendingApplicationsQuery);
 
 
     const totalRevenue = useMemo(() => {
@@ -71,9 +84,12 @@ export default function AdminDashboardPage() {
     const totalSales = useMemo(() => allOrders?.length || 0, [allOrders]);
     
     const newCustomersThisMonth = useMemo(() => {
+        if (!companies) return 0;
         const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-        return companies?.filter(c => c.registeredAt.toDate() > oneMonthAgo).length || 0;
+        return companies.filter(c => {
+            return c.registeredAt && c.registeredAt.toDate() > oneMonthAgo
+        }).length;
     }, [companies]);
 
     const pendingOrdersCount = useMemo(() => {
@@ -108,7 +124,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="grid gap-4 md:gap-8">
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -156,6 +172,20 @@ export default function AdminDashboardPage() {
               Totalt antall ubehandlede bestillinger
             </p>
           </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                Pending Applications
+                </CardTitle>
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{pendingApplications?.length || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                Requires review
+                </p>
+            </CardContent>
         </Card>
       </div>
       <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">

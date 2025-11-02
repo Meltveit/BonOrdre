@@ -12,6 +12,7 @@ import {
   Bell,
   LogOut,
   Warehouse,
+  UserCheck,
 } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -26,6 +27,7 @@ import { doc, getDoc } from "firebase/firestore";
 
 const navItems: NavItem[] = [
     { href: "/admin", icon: Home, label: "Dashboard" },
+    { href: "/admin/applications", icon: UserCheck, label: "Applications" },
     { href: "/admin/orders", icon: ShoppingCart, label: "Orders" },
     { href: "/admin/products", icon: Package, label: "Products" },
     { href: "/admin/customers", icon: Users2, label: "Customers" },
