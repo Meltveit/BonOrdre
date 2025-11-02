@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormProvider, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { Product, PackagingStructure, PackagingType, PalletType, Dimensions } from '@/lib/definitions';
@@ -212,7 +212,7 @@ export default function EditProductPage() {
   if (!isNewProduct && !product) return <p>Product not found.</p>;
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-8">
         <div className="flex items-center justify-between">
             <div>
@@ -382,6 +382,6 @@ export default function EditProductPage() {
           </div>
         </div>
       </form>
-    </Form>
+    </FormProvider>
   );
 }
