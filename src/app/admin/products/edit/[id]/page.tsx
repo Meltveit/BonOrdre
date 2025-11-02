@@ -375,7 +375,7 @@ export default function EditProductPage() {
                         {structure === 'hierarchical' && (
                             <>
                                 <FormField control={form.control} name="pricing.standard.mellompakk" render={({ field }) => (<FormItem><FormLabel>Mellompakk Price (per pack)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="pricing.standard.toppakk" render={({ field }) => (<FormItem><FormLabel>Toppakk Price (per pallet)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="pricing.standard.toppakk" render={({ field }) => (<FormItem><FormLabel>Toppakk Price (per pallet)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </>
                         )}
                     </SectionCard>
