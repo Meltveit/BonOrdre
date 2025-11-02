@@ -230,7 +230,7 @@ export default function SignupPage() {
                     <CardDescription>Enter your company details to apply for an account. Applications are subject to admin approval.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Form {...form}>
+                    <Form {...(form as any)}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <div className="space-y-4 rounded-md border p-4">
                                 <h3 className="font-semibold text-lg font-headline">Company Information</h3>
